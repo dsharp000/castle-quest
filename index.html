@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Castle Quest: Forest of Shadows</title>
+<style>
+  html,body{margin:0;padding:0;background:#14101f;height:100%;overflow:hidden;font-family:'Trebuchet MS','Segoe UI',sans-serif;-webkit-user-select:none;user-select:none;touch-action:none}
+  #wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%}
+  canvas{background:#1a1430;border:4px solid #6b4a2b;border-radius:10px;max-width:98vw;max-height:80vh;image-rendering:pixelated}
+  #touch{display:flex;gap:10px;margin-top:8px;width:98vw;max-width:900px;justify-content:space-between}
+  .tbtn{flex:1;max-width:90px;padding:16px 0;font-size:20px;border-radius:12px;border:3px solid #4a3018;background:#7a5230;color:#fff;box-shadow:0 4px 0 #3a2510;font-weight:800}
+  .tbtn:active{transform:translateY(3px);box-shadow:none}
+  .spacer{flex:2}
+  #hint{color:#c9b68a;font-size:12px;margin-top:6px;text-align:center}
+  @media(hover:hover) and (pointer:fine){ #touch{display:none} }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="900" height="500"></canvas>
+  <div id="hint">⌨️ Move: ← → / A D &nbsp;•&nbsp; Jump: ↑ / W / Space &nbsp;•&nbsp; Attack: J / X &nbsp;•&nbsp; Build (at castle): E</div>
+  <div id="touch">
+    <button class="tbtn" id="bL">◀</button>
+    <button class="tbtn" id="bR">▶</button>
+    <div class="spacer"></div>
+    <button class="tbtn" id="bE">🏰</button>
+    <button class="tbtn" id="bJ">⬆</button>
+    <button class="tbtn" id="bA">⚔️</button>
+  </div>
+</div>
+<!-- Plain scripts sharing globals (no modules) so the game runs from file:// with no server. Load order matters. -->
+<script src="js/config.js"></script>
+<script src="levels/level1.js"></script>
+<script src="js/input.js"></script>
+<script src="js/world.js"></script>
+<script src="js/player.js"></script>
+<script src="js/enemies.js"></script>
+<script src="js/castle.js"></script>
+<script src="js/render.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
