@@ -30,6 +30,7 @@ function updateWorld() {
     const loot = level.chest.loot;
     for (const k in loot) res[k] += loot[k];
     say(`🎁 Treasure! +${loot.wood} wood, +${loot.stone} stone, +${loot.iron} iron`, 220);
+    sfx.chest();
   }
 }
 

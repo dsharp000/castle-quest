@@ -20,8 +20,8 @@ function updateMenu() {
   if (keys.A || keys.E) {
     const m = MENU[menuSel];
     if (Object.entries(m.cost).every(([k, v]) => res[k] >= v)) {
-      Object.entries(m.cost).forEach(([k, v]) => res[k] -= v); m.act(); say(`${m.n} ✔`, 90);
-    } else say('Not enough materials!', 80);
+      Object.entries(m.cost).forEach(([k, v]) => res[k] -= v); m.act(); say(`${m.n} ✔`, 90); sfx.build();
+    } else { say('Not enough materials!', 80); sfx.deny(); }
     keys.A = false; keys.E = false;
   }
 }
@@ -38,8 +38,10 @@ cv.addEventListener('click', e => {
 function updateTowers() {
   if (t % 25 === 0 && castle.towers > 0) {
     const targets = raiders.filter(r => r.hp > 0 && r.x < castle.x + 900);
-    for (let i = 0; i < Math.min(castle.towers, targets.length); i++)
+    for (let i = 0; i < Math.min(castle.towers, targets.length); i++) {
       arrows.push({ x: castle.x + 120, y: GROUND - 160, tx: targets[i], vx: 0, vy: 0 });
+      sfx.arrow();
+    }
   }
   for (const a of arrows) {
     if (a.tx && a.tx.hp > 0) { const dx = a.tx.x - a.x, dy = (a.tx.y - 25) - a.y, d = Math.hypot(dx, dy); a.vx = dx / d * 6; a.vy = dy / d * 6; }

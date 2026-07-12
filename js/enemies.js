@@ -56,10 +56,12 @@ function updateRaiders() {
 function spawnRaid() {
   const n = Math.min(level.raids.baseCount + wave, level.raids.maxCount);
   say(`⚠️ RAID! ${n} goblins are attacking the castle!`, 220);
+  sfx.raidHorn();
   for (let i = 0; i < n; i++) raiders.push({ x: WORLD_W - rand(40, 300) - i * 50, y: GROUND, hp: 3 + Math.floor(wave / 2), max: 3, face: -1, hurt: 0, atkCd: 0, raider: true });
 }
 
 function killEnemy(g) {
+  sfx.kill();
   const iron = ri(1, 2), wood = ri(0, 2);
   res.iron += iron; if (wood) res.wood += wood;
   pop(g.x, g.y - 50, `+${iron} ⚙️${wood ? ` +${wood} 🪵` : ''}`);

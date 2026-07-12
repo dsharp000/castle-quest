@@ -30,8 +30,8 @@ var read = function (p) { return $.NSString.stringWithContentsOfFileEncodingErro
 var base = $.NSFileManager.defaultManager.currentDirectoryPath.js;
 // JavaScriptCore drops top-level const/let bindings between eval() calls,
 // so rewrite them to var when loading (test harness only — files are unchanged).
-['js/config.js', 'levels/level1.js', 'js/input.js', 'js/world.js', 'js/player.js',
- 'js/enemies.js', 'js/castle.js', 'js/render.js', 'js/main.js']
+['js/config.js', 'levels/level1.js', 'js/input.js', 'js/audio.js', 'js/world.js',
+ 'js/player.js', 'js/enemies.js', 'js/castle.js', 'js/render.js', 'js/main.js']
   .forEach(function (f) { (1, eval)(read(base + '/' + f).replace(/\b(const|let)\s+/g, 'var ')); });
 
 // ---- helpers ----
@@ -87,6 +87,11 @@ check('lose condition triggers', scene === 'over');
 
 reset();
 check('reset restores world', scene === 'game' && trees.length > 0 && castle.hp === castle.maxHp);
+
+var sfxOk = true;
+try { Object.keys(sfx).forEach(function (k) { sfx[k](); }); toggleMute(); toggleMute(); musicTick(); }
+catch (e) { sfxOk = false; }
+check('audio no-ops headless', sfxOk);
 
 if (fails) throw new Error(fails + ' smoke test failure(s)');
 'SMOKE TEST PASSED';

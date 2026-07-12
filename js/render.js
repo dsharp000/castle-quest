@@ -66,6 +66,7 @@ function drawHUD() {
   const goal = level.goal;
   ctx.font = '11px sans-serif'; ctx.fillStyle = '#c9b68a';
   ctx.fillText(`GOAL: Keep lvl ${goal.keep} (${castle.keep}/${goal.keep}) • ${goal.walls} walls (${castle.walls}/${goal.walls}) • ${goal.towers} towers (${castle.towers}/${goal.towers}) • defeat the troll ${troll.alive ? '❌' : '✔️'}`, 16, H - 10);
+  ctx.textAlign = 'right'; ctx.fillText(muted ? '🔇 M' : '🔊 M', W - 16, H - 10); ctx.textAlign = 'left';
 }
 
 function drawTitle() {

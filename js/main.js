@@ -32,9 +32,9 @@ function update() {
   updateTowers();
   updateWorld();
   // lose / win
-  if (castle.hp <= 0) scene = 'over';
+  if (castle.hp <= 0) { scene = 'over'; sfx.lose(); }
   const goal = level.goal;
-  if (castle.keep >= goal.keep && castle.walls >= goal.walls && castle.towers >= goal.towers && !troll.alive) scene = 'win';
+  if (castle.keep >= goal.keep && castle.walls >= goal.walls && castle.towers >= goal.towers && !troll.alive) { scene = 'win'; sfx.win(); }
 }
 
 reset(); scene = 'title';

@@ -32,15 +32,16 @@ function updatePlayer() {
 // One swing hits the first thing in reach: tree, rock, ore, enemy, then boss.
 function swing() {
   const p = player, reach = 46, hx = p.x + p.face * reach * 0.6;
-  for (const tr of trees) if (tr.hp > 0 && near(hx, tr.x, reach) && p.y > GROUND - 60) { tr.hp--; puff(tr.x, GROUND - 60, '#7ec850'); if (tr.hp <= 0) { tr.respawn = 60 * 20; const n = ri(2, 4); res.wood += n; pop(tr.x, GROUND - 90, `+${n} 🪵`); } return; }
-  for (const rk of rocks) if (rk.hp > 0 && near(hx, rk.x, reach) && p.y > GROUND - 60) { rk.hp--; puff(rk.x, GROUND - 20, '#aaa'); if (rk.hp <= 0) { rk.respawn = 60 * 25; const n = ri(2, 3); res.stone += n; pop(rk.x, GROUND - 60, `+${n} 🪨`); } return; }
-  for (const o of ores) if (o.hp > 0 && near(hx, o.x, reach) && p.y > GROUND - 60) { o.hp--; puff(o.x, GROUND - 20, '#c9d6ff'); if (o.hp <= 0) { o.respawn = 60 * 30; const n = ri(1, 3); res.iron += n; pop(o.x, GROUND - 60, `+${n} ⚙️`); } return; }
-  for (const g of [...goblins, ...raiders]) if (g.hp > 0 && near(hx, g.x, reach) && Math.abs(p.y - g.y) < 60) { g.hp -= swordDmg(); g.hurt = 8; g.x += p.face * 14; puff(g.x, g.y - 30, '#ff8a8a'); if (g.hp <= 0) killEnemy(g); return; }
-  if (troll.alive && near(hx, troll.x, reach + 20)) { troll.hp -= swordDmg(); troll.hurt = 8; puff(troll.x, troll.y - 50, '#ff8a8a'); if (troll.hp <= 0) { troll.alive = false; pop(troll.x, GROUND - 120, '💀 TROLL DEFEATED!'); say('🧌 The troll is defeated! Grab the treasure! →', 240); } return; }
+  sfx.swing();
+  for (const tr of trees) if (tr.hp > 0 && near(hx, tr.x, reach) && p.y > GROUND - 60) { tr.hp--; sfx.chop(); puff(tr.x, GROUND - 60, '#7ec850'); if (tr.hp <= 0) { tr.respawn = 60 * 20; const n = ri(2, 4); res.wood += n; pop(tr.x, GROUND - 90, `+${n} 🪵`); sfx.pickup(); } return; }
+  for (const rk of rocks) if (rk.hp > 0 && near(hx, rk.x, reach) && p.y > GROUND - 60) { rk.hp--; sfx.mine(); puff(rk.x, GROUND - 20, '#aaa'); if (rk.hp <= 0) { rk.respawn = 60 * 25; const n = ri(2, 3); res.stone += n; pop(rk.x, GROUND - 60, `+${n} 🪨`); sfx.pickup(); } return; }
+  for (const o of ores) if (o.hp > 0 && near(hx, o.x, reach) && p.y > GROUND - 60) { o.hp--; sfx.mine(); puff(o.x, GROUND - 20, '#c9d6ff'); if (o.hp <= 0) { o.respawn = 60 * 30; const n = ri(1, 3); res.iron += n; pop(o.x, GROUND - 60, `+${n} ⚙️`); sfx.pickup(); } return; }
+  for (const g of [...goblins, ...raiders]) if (g.hp > 0 && near(hx, g.x, reach) && Math.abs(p.y - g.y) < 60) { g.hp -= swordDmg(); g.hurt = 8; g.x += p.face * 14; sfx.hit(); puff(g.x, g.y - 30, '#ff8a8a'); if (g.hp <= 0) killEnemy(g); return; }
+  if (troll.alive && near(hx, troll.x, reach + 20)) { troll.hp -= swordDmg(); troll.hurt = 8; sfx.hit(); puff(troll.x, troll.y - 50, '#ff8a8a'); if (troll.hp <= 0) { troll.alive = false; pop(troll.x, GROUND - 120, '💀 TROLL DEFEATED!'); say('🧌 The troll is defeated! Grab the treasure! →', 240); sfx.bossDie(); } return; }
 }
 
 function hurtPlayer(n) {
-  player.hp -= n; player.inv = 70; puff(player.x, player.y - 30, '#ff5b5b', 8);
+  player.hp -= n; player.inv = 70; sfx.hurt(); puff(player.x, player.y - 30, '#ff5b5b', 8);
   if (player.hp <= 0) {
     player.hp = player.maxHp; player.x = castle.x + castle.w + 40; player.y = GROUND; player.inv = 120;
     say('💫 You were knocked out! Back at the castle…', 180);
