@@ -1,6 +1,8 @@
 // Procedural music + sound effects via Web Audio — no audio files needed.
-// Everything no-ops until the first user gesture creates the AudioContext
-// (browser autoplay rule) and when running headless in test/smoke.js.
+// Medieval palette: Karplus–Strong plucked lute/harp, bagpipe-style drone,
+// horn calls, and hand-drum thumps. Everything no-ops until the first user
+// gesture creates the AudioContext (browser autoplay rule) and when running
+// headless in test/smoke.js.
 // M key or the 🔊 touch button toggles mute (persisted in localStorage).
 
 var AC = null, sfxBus = null, musicBus = null;
@@ -13,7 +15,7 @@ function audioInit() {
   if (!Ctor) return;
   AC = new Ctor();
   sfxBus = AC.createGain(); sfxBus.gain.value = 0.5; sfxBus.connect(AC.destination);
-  musicBus = AC.createGain(); musicBus.gain.value = 0.35; musicBus.connect(AC.destination);
+  musicBus = AC.createGain(); musicBus.gain.value = 0.4; musicBus.connect(AC.destination);
   nextStep = AC.currentTime + 0.1;
   setInterval(musicTick, 80);
 }
@@ -50,32 +52,73 @@ function _n(dest, dur, vol, freq, when) {
 const tone = (f, dur, type, vol, slide, when) => _o(sfxBus, f, dur, type, vol, slide, when);
 const hiss = (dur, vol, freq, when) => _n(sfxBus, dur, vol, freq, when);
 
+// Plucked string (lute/harp) via Karplus–Strong, rendered once per pitch
+// into a cached buffer: a burst of noise fed through a decaying average.
+var pluckCache = {};
+function pluckBuf(freq) {
+  const key = Math.round(freq);
+  if (pluckCache[key]) return pluckCache[key];
+  const sr = AC.sampleRate, N = Math.max(2, Math.round(sr / freq)), len = Math.floor(sr * 0.9);
+  const buf = AC.createBuffer(1, len, sr), d = buf.getChannelData(0);
+  for (let i = 0; i < N; i++) d[i] = Math.random() * 2 - 1;
+  for (let i = N + 1; i < len; i++) d[i] = 0.996 * 0.5 * (d[i - N] + d[i - N - 1]);
+  pluckCache[key] = buf; return buf;
+}
+function pluck(dest, freq, vol, when) {
+  if (!AC || muted) return;
+  const t0 = when || AC.currentTime, s = AC.createBufferSource(), g = AC.createGain();
+  s.buffer = pluckBuf(freq); g.gain.value = vol;
+  s.connect(g); g.connect(dest); s.start(t0); s.stop(t0 + 0.9);
+}
+// Horn: sawtooth through a lowpass with a breathy attack and release.
+function horn(dest, freq, dur, vol, when) {
+  if (!AC || muted) return;
+  const t0 = when || AC.currentTime, o = AC.createOscillator(), f = AC.createBiquadFilter(), g = AC.createGain();
+  o.type = 'sawtooth'; o.frequency.value = freq;
+  f.type = 'lowpass'; f.frequency.value = freq * 4;
+  g.gain.setValueAtTime(0.001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + 0.06);
+  g.gain.setValueAtTime(vol, t0 + Math.max(0.07, dur - 0.08)); g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+  o.connect(f); f.connect(g); g.connect(dest); o.start(t0); o.stop(t0 + dur + 0.02);
+}
+// Bell: a fundamental plus inharmonic partials, like a small chapel bell.
+function bell(dest, freq, vol, when) {
+  [[1, 1], [2.76, 0.4], [5.4, 0.15]].forEach(([m, a]) => _o(dest, freq * m, 0.6, 'sine', vol * a, null, when));
+}
+// Hand drum: pitch-dropping sine thud with a skin-slap of noise.
+function thump(dest, vol, when) {
+  if (!AC || muted) return;
+  const t0 = when || AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
+  o.type = 'sine'; o.frequency.setValueAtTime(140, t0); o.frequency.exponentialRampToValueAtTime(45, t0 + 0.18);
+  g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.2);
+  o.connect(g); g.connect(dest); o.start(t0); o.stop(t0 + 0.22);
+  _n(dest, 0.05, vol * 0.4, 200, when);
+}
+
 // ---- sound effects (call these from gameplay code) ----
 const sfx = {
   swing:   () => hiss(0.09, 0.12, 2400),
-  chop:    () => { hiss(0.08, 0.25, 700); tone(90, 0.08, 'square', 0.12, 60); },
-  mine:    () => { hiss(0.05, 0.2, 3000); tone(1800, 0.05, 'square', 0.06); },
-  hit:     () => { tone(220, 0.08, 'sawtooth', 0.15, 110); hiss(0.06, 0.15, 900); },
-  kill:    () => [330, 440, 550].forEach((f, i) => tone(f, 0.08, 'square', 0.1, null, at(i * 0.07))),
-  pickup:  () => { tone(660, 0.06, 'triangle', 0.12); tone(990, 0.09, 'triangle', 0.12, null, at(0.06)); },
-  hurt:    () => tone(180, 0.2, 'sawtooth', 0.18, 70),
-  build:   () => { hiss(0.1, 0.2, 500); tone(392, 0.08, 'triangle', 0.12, null, at(0.05)); tone(523, 0.12, 'triangle', 0.12, null, at(0.13)); },
-  deny:    () => tone(160, 0.15, 'square', 0.12, 120),
+  chop:    () => { hiss(0.08, 0.28, 600); tone(85, 0.09, 'triangle', 0.15, 55); },
+  mine:    () => { hiss(0.04, 0.2, 2600); bell(sfxBus, 1320, 0.05); },
+  hit:     () => { hiss(0.07, 0.2, 1400); tone(760, 0.09, 'square', 0.05, 500); },
+  kill:    () => [294, 349, 440].forEach((f, i) => pluck(sfxBus, f, 0.25, at(i * 0.06))),
+  pickup:  () => { pluck(sfxBus, 587, 0.22); pluck(sfxBus, 880, 0.22, at(0.07)); },
+  hurt:    () => { thump(sfxBus, 0.3); tone(170, 0.18, 'triangle', 0.15, 80); },
+  build:   () => { hiss(0.09, 0.25, 450); bell(sfxBus, 523, 0.12, at(0.1)); },
+  deny:    () => { thump(sfxBus, 0.2); thump(sfxBus, 0.2, at(0.14)); },
   arrow:   () => hiss(0.12, 0.08, 4000),
-  raidHorn:() => { tone(147, 0.4, 'sawtooth', 0.14); tone(220, 0.4, 'sawtooth', 0.1); tone(147, 0.6, 'sawtooth', 0.14, null, at(0.45)); tone(196, 0.6, 'sawtooth', 0.1, null, at(0.45)); },
-  bossDie: () => { hiss(0.4, 0.25, 300); [392, 311, 247, 196].forEach((f, i) => tone(f, 0.2, 'sawtooth', 0.1, null, at(i * 0.12))); },
-  chest:   () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.12, 'triangle', 0.12, null, at(i * 0.09))),
-  win:     () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.2, 'square', 0.12, null, at(i * 0.16))),
-  lose:    () => [392, 330, 262, 196].forEach((f, i) => tone(f, 0.32, 'triangle', 0.12, null, at(i * 0.26))),
+  raidHorn:() => { horn(sfxBus, 147, 0.5, 0.22); horn(sfxBus, 147, 0.35, 0.2, at(0.55)); horn(sfxBus, 196, 0.8, 0.22, at(0.95)); thump(sfxBus, 0.35, at(0.95)); },
+  bossDie: () => { thump(sfxBus, 0.4); [196, 165, 147, 110].forEach((f, i) => horn(sfxBus, f, 0.25, 0.15, at(i * 0.15))); },
+  chest:   () => [294, 349, 440, 523, 587, 698, 880].forEach((f, i) => pluck(sfxBus, f, 0.2, at(i * 0.05))),
+  win:     () => { [294, 294, 440, 587].forEach((f, i) => horn(sfxBus, f, i === 3 ? 0.9 : 0.28, 0.18, at(i * 0.3))); [587, 698, 880, 1175].forEach((f, i) => pluck(sfxBus, f, 0.2, at(1.2 + i * 0.06))); },
+  lose:    () => { thump(sfxBus, 0.4); [220, 196, 175, 147].forEach((f, i) => horn(sfxBus, f, 0.5, 0.15, at(i * 0.45))); },
 };
 
-// ---- background music: a 32-step chiptune loop in D minor; switches to a
-// faster, darker pattern while a raid is underway. 0 = rest, else MIDI note.
+// ---- background music: lute melody in D dorian over a bagpipe-style drone
+// (root + fifth each bar). Raids switch to a faster, darker tune with hand
+// drums. 32 eighth-note steps per loop; 0 = rest, else MIDI note.
 const midi = m => 440 * Math.pow(2, (m - 69) / 12);
-const MEL_PEACE  = [62, 0, 65, 67, 69, 0, 72, 69, 67, 0, 65, 62, 60, 62, 65, 0, 62, 0, 65, 67, 69, 0, 72, 74, 72, 0, 69, 67, 65, 67, 62, 0];
-const BASS_PEACE = [38, 0, 0, 0, 45, 0, 0, 0, 41, 0, 0, 0, 45, 0, 0, 0, 38, 0, 0, 0, 45, 0, 0, 0, 36, 0, 0, 0, 43, 0, 0, 0];
-const MEL_RAID   = [62, 0, 62, 63, 65, 0, 63, 62, 60, 0, 60, 62, 63, 0, 62, 60, 58, 0, 58, 60, 62, 0, 63, 65, 63, 62, 60, 58, 57, 0, 58, 0];
-const BASS_RAID  = [38, 38, 0, 38, 38, 38, 0, 38, 36, 36, 0, 36, 36, 36, 0, 36, 34, 34, 0, 34, 34, 34, 0, 34, 33, 33, 0, 33, 45, 0, 43, 0];
+const MEL_PEACE = [62, 0, 65, 67, 69, 0, 72, 69, 67, 0, 65, 62, 60, 62, 65, 0, 62, 0, 65, 67, 69, 0, 72, 74, 72, 0, 69, 67, 65, 67, 62, 0];
+const MEL_RAID  = [62, 0, 62, 63, 65, 0, 63, 62, 60, 0, 60, 62, 63, 0, 62, 60, 58, 0, 58, 60, 62, 0, 63, 65, 63, 62, 60, 58, 57, 0, 58, 0];
 var nextStep = 0, stepI = 0;
 
 function musicTick() {
@@ -83,14 +126,18 @@ function musicTick() {
   while (nextStep < AC.currentTime + 0.2) {
     const raid = raiders && raiders.length > 0;
     playStep(stepI % 32, nextStep, raid);
-    nextStep += raid ? 0.16 : 0.21;
+    nextStep += raid ? 0.16 : 0.22;
     stepI++;
   }
 }
 function playStep(s, t0, raid) {
   if (muted || scene !== 'game') return;
-  const mel = raid ? MEL_RAID : MEL_PEACE, bass = raid ? BASS_RAID : BASS_PEACE;
-  if (mel[s]) _o(musicBus, midi(mel[s]), raid ? 0.14 : 0.19, 'square', 0.045, null, t0);
-  if (bass[s]) _o(musicBus, midi(bass[s]), raid ? 0.15 : 0.4, 'triangle', 0.07, null, t0);
-  if (raid && s % 2 === 0) _n(musicBus, 0.03, 0.05, 6000, t0);
+  const mel = raid ? MEL_RAID : MEL_PEACE, stepDur = raid ? 0.16 : 0.22;
+  if (mel[s]) pluck(musicBus, midi(mel[s]), 0.16, t0);
+  if (s % 8 === 0) { // drone: D2 + A2, re-bowed each bar
+    horn(musicBus, midi(38), stepDur * 8, 0.045, t0);
+    horn(musicBus, midi(45), stepDur * 8, 0.03, t0);
+  }
+  if (raid && s % 4 === 0) thump(musicBus, 0.25, t0);
+  if (raid && s % 4 === 2) _n(musicBus, 0.04, 0.06, 5000, t0);
 }
