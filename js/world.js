@@ -24,6 +24,14 @@ function updateWorld() {
   // particles
   for (const pt of parts) { pt.x += pt.vx; pt.y += pt.vy; pt.vy += pt.txt ? 0 : .15; pt.life--; }
   parts = parts.filter(pt => pt.life > 0);
+  // reclaim materials dropped on death
+  if (dropBag && near(player.x, dropBag.x, 40)) {
+    res.wood += dropBag.wood; res.stone += dropBag.stone; res.iron += dropBag.iron;
+    pop(dropBag.x, GROUND - 80, `+${dropBag.wood} 🪵 +${dropBag.stone} 🪨 +${dropBag.iron} ⚙️`);
+    say('🎒 You recovered your dropped materials!', 160);
+    sfx.pickup();
+    dropBag = null;
+  }
   // chest unlocks once the boss is dead
   if (chest && !chest.opened && !troll.alive && near(player.x, chest.x, 40)) {
     chest.opened = true;
@@ -64,6 +72,13 @@ function drawWorld() {
   }
   // chest
   if (chest) { ctx.font = '30px serif'; ctx.fillText(chest.opened ? '🗃️' : '🎁', chest.x - 15, GROUND - 4); }
+  // dropped-loot bag from a knockout
+  if (dropBag) {
+    const bob = Math.sin(t / 10) * 3;
+    ctx.font = '24px serif'; ctx.fillText('💰', dropBag.x - 12, GROUND - 8 + bob);
+    ctx.font = '10px sans-serif'; ctx.fillStyle = '#ffe9a8'; ctx.textAlign = 'center';
+    ctx.fillText('your materials!', dropBag.x, GROUND - 38 + bob); ctx.textAlign = 'left';
+  }
 }
 
 function drawParticles() {

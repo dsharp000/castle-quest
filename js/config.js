@@ -15,6 +15,6 @@ const worldX = x => x < 0 ? WORLD_W + x : x;
 var scene = 'title', t = 0, msg = null, msgT = 0;
 var level, WORLD_W, GROUND;
 var player, res, castle, trees, rocks, ores, goblins, raiders, arrows, parts,
-    platforms, raidTimer, wave, menuOpen, troll, chest;
+    platforms, raidTimer, wave, menuOpen, troll, chest, dropBag;
 
 const say = (s, dur = 140) => { msg = s; msgT = dur; };

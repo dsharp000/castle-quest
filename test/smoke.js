@@ -88,6 +88,14 @@ check('lose condition triggers', scene === 'over');
 reset();
 check('reset restores world', scene === 'game' && trees.length > 0 && castle.hp === castle.maxHp);
 
+res.wood = 5; res.stone = 3; res.iron = 2; player.swordLvl = 4;
+player.x = 2000; player.y = GROUND;
+hurtPlayer(player.hp);
+check('death drops materials and breaks sword',
+  res.wood === 0 && player.swordLvl === 1 && dropBag && dropBag.wood === 5 && dropBag.x === 2000);
+player.x = dropBag.x; frame(1);
+check('drop bag can be reclaimed', res.wood === 5 && res.stone === 3 && res.iron === 2 && dropBag === null);
+
 var sfxOk = true;
 try { Object.keys(sfx).forEach(function (k) { sfx[k](); }); toggleMute(); toggleMute(); musicTick(); }
 catch (e) { sfxOk = false; }

@@ -21,6 +21,7 @@ function reset() {
   goblins = spawnBand(level.bands.goblins, newGob);
   troll = newTroll(level.boss);
   chest = { x: worldX(level.chest.x), opened: false };
+  dropBag = null;
 }
 
 function update() {

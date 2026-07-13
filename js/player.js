@@ -43,8 +43,16 @@ function swing() {
 function hurtPlayer(n) {
   player.hp -= n; player.inv = 70; sfx.hurt(); puff(player.x, player.y - 30, '#ff5b5b', 8);
   if (player.hp <= 0) {
+    // death penalty: materials drop where you fell (merging with any earlier
+    // bag) and the sword breaks back to damage 1
+    if (res.wood || res.stone || res.iron) {
+      const old = dropBag || { wood: 0, stone: 0, iron: 0 };
+      dropBag = { x: player.x, wood: old.wood + res.wood, stone: old.stone + res.stone, iron: old.iron + res.iron };
+    }
+    res = { wood: 0, stone: 0, iron: 0 };
+    player.swordLvl = 1;
     player.hp = player.maxHp; player.x = castle.x + castle.w + 40; player.y = GROUND; player.inv = 120;
-    say('💫 You were knocked out! Back at the castle…', 180);
+    say('💫 Knocked out! Your sword broke and your materials dropped where you fell…', 220);
   }
 }
 
