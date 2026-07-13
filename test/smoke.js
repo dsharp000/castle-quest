@@ -96,6 +96,13 @@ check('death drops materials and breaks sword',
 player.x = dropBag.x; frame(1);
 check('drop bag can be reclaimed', res.wood === 5 && res.stone === 3 && res.iron === 2 && dropBag === null);
 
+reset();
+var tr2 = trees[0], gob = newGob(tr2.x);
+goblins.push(gob);
+player.x = tr2.x - 20; player.y = GROUND; player.face = 1;
+keys.A = true; frame(1); keys.A = false;
+check('enemy is hit before resources', gob.hp === 2 && tr2.hp === 3);
+
 var sfxOk = true;
 try { Object.keys(sfx).forEach(function (k) { sfx[k](); }); toggleMute(); toggleMute(); musicTick(); }
 catch (e) { sfxOk = false; }
