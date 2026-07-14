@@ -106,6 +106,7 @@ const sfx = {
   build:   () => { hiss(0.09, 0.25, 450); bell(sfxBus, 523, 0.12, at(0.1)); },
   deny:    () => { thump(sfxBus, 0.2); thump(sfxBus, 0.2, at(0.14)); },
   arrow:   () => hiss(0.12, 0.08, 4000),
+  teleport:() => { hiss(0.25, 0.15, 3500); [587, 880, 1175].forEach((f, i) => pluck(sfxBus, f, 0.15, at(i * 0.04))); },
   raidHorn:() => { horn(sfxBus, 147, 0.5, 0.22); horn(sfxBus, 147, 0.35, 0.2, at(0.55)); horn(sfxBus, 196, 0.8, 0.22, at(0.95)); thump(sfxBus, 0.35, at(0.95)); },
   bossDie: () => { thump(sfxBus, 0.4); [196, 165, 147, 110].forEach((f, i) => horn(sfxBus, f, 0.25, 0.15, at(i * 0.15))); },
   chest:   () => [294, 349, 440, 523, 587, 698, 880].forEach((f, i) => pluck(sfxBus, f, 0.2, at(i * 0.05))),

@@ -1,6 +1,6 @@
 // The knight: movement, sword swings (gathering + combat), damage, drawing.
 
-const makePlayer = x => ({ x, y: GROUND, vx: 0, vy: 0, g: true, hp: 6, maxHp: 6, face: 1, atkT: 0, atkCd: 0, inv: 0, swordLvl: 1, walk: 0 });
+const makePlayer = x => ({ x, y: GROUND, vx: 0, vy: 0, g: true, hp: 6, maxHp: 6, face: 1, atkT: 0, atkCd: 0, inv: 0, swordLvl: 1, walk: 0, tpCd: 0 });
 const swordDmg = () => player.swordLvl;
 
 function updatePlayer() {
@@ -27,6 +27,16 @@ function updatePlayer() {
   if (keys.A && p.atkCd <= 0 && !menuOpen) { p.atkT = 12; p.atkCd = 22; swing(); }
   // open build menu near the castle
   if (keys.E && near(p.x, castle.x + castle.w / 2, 220) && p.g) { menuOpen = true; keys.E = false; }
+  // teleport home (U) — one-minute cooldown
+  if (p.tpCd > 0) p.tpCd--;
+  if (keys.U && p.tpCd <= 0 && !menuOpen) {
+    puff(p.x, p.y - 30, '#b48aff', 10);
+    p.x = castle.x + castle.w + 40; p.y = GROUND; p.vy = 0;
+    p.tpCd = 60 * 60;
+    puff(p.x, p.y - 30, '#b48aff', 10);
+    sfx.teleport();
+    say('🌀 Whoosh! Back at the castle. Teleport recharges in 60s…', 140);
+  }
 }
 
 // One swing hits the first thing in reach — enemies take priority over

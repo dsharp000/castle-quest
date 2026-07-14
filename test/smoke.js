@@ -107,6 +107,14 @@ player.x = tr2.x - 20; player.y = GROUND; player.face = 1;
 keys.A = true; frame(1); keys.A = false;
 check('enemy is hit before resources', gob.hp === 2 && tr2.hp === 3);
 
+reset();
+player.x = 3000; player.y = GROUND;
+keys.U = true; frame(1); keys.U = false;
+check('teleport returns player to castle', Math.abs(player.x - (castle.x + castle.w + 40)) < 5 && player.tpCd > 0);
+player.x = 3000;
+keys.U = true; frame(1); keys.U = false;
+check('teleport blocked during cooldown', player.x === 3000);
+
 var sfxOk = true;
 try { Object.keys(sfx).forEach(function (k) { sfx[k](); }); toggleMute(); toggleMute(); musicTick(); }
 catch (e) { sfxOk = false; }
