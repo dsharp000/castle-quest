@@ -16,5 +16,22 @@ const bindBtn = (id, k) => {
 bindBtn('bL', 'L'); bindBtn('bR', 'R'); bindBtn('bJ', 'J'); bindBtn('bA', 'A'); bindBtn('bE', 'E');
 
 // Scene transitions on any interaction.
-cv.addEventListener('pointerdown', () => { if (scene === 'title') scene = 'game'; if (scene === 'over' || scene === 'win') reset(); });
+cv.addEventListener('pointerdown', () => {
+  if (scene === 'title') scene = 'game';
+  if (scene === 'win' && enteringName) { // touch devices have no keyboard — offer a dialog
+    const n = prompt('Enter your name:', nameBuf);
+    if (n !== null) { nameBuf = n; finishNameEntry(); }
+    return;
+  }
+  if (scene === 'over' || scene === 'win') reset();
+});
 addEventListener('keydown', () => { if (scene === 'title') scene = 'game'; });
+
+// Typing a name for the best-times table on the win screen.
+addEventListener('keydown', e => {
+  if (!enteringName || scene !== 'win') return;
+  if (e.key === 'Enter') finishNameEntry();
+  else if (e.key === 'Backspace') nameBuf = nameBuf.slice(0, -1);
+  else if (e.key.length === 1 && nameBuf.length < 12) nameBuf += e.key;
+  e.preventDefault();
+});

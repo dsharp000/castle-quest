@@ -15,7 +15,8 @@ const worldX = x => x < 0 ? WORLD_W + x : x;
 var scene = 'title', t = 0, msg = null, msgT = 0;
 var level, WORLD_W, GROUND;
 var player, res, castle, trees, rocks, ores, goblins, raiders, arrows, parts,
-    platforms, raidTimer, wave, menuOpen, troll, chest, dropBag, runTime, lastRun;
+    platforms, raidTimer, wave, menuOpen, troll, chest, dropBag, runTime, lastRun,
+    enteringName = false, nameBuf = '';
 
 // frames → "m:ss.t" for the speedrun timer and best-times table
 const fmtTime = f => { const s = f / 60, m = Math.floor(s / 60); return `${m}:${String(Math.floor(s % 60)).padStart(2, '0')}.${Math.floor(s * 10 % 10)}`; };

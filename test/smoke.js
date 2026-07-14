@@ -82,6 +82,9 @@ check('chest opens with loot', chest.opened && res.wood > wood0);
 castle.keep = 3; castle.walls = 2; castle.towers = 2; frame(1);
 check('win condition triggers', scene === 'win');
 check('run time recorded in best times', lastRun && lastRun.time > 0 && lastRun.rank === 0 && bestTimes.length === 1 && bestTimes[0].time === lastRun.time);
+check('name entry starts after a table run', enteringName === true);
+nameBuf = 'Sir Dave'; finishNameEntry();
+check('confirmed name lands on the entry', bestTimes[0].name === 'Sir Dave' && enteringName === false);
 
 reset(); castle.hp = 0; frame(1);
 check('lose condition triggers', scene === 'over');

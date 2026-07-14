@@ -77,7 +77,7 @@ function drawTitle() {
   ctx.font = '70px serif'; ctx.textAlign = 'center'; ctx.fillText('🏰', W / 2, 150);
   ctx.font = 'bold 42px sans-serif'; ctx.fillStyle = '#ffc94d'; ctx.fillText('CASTLE QUEST', W / 2, 210);
   ctx.font = 'bold 20px sans-serif'; ctx.fillStyle = '#c9b68a'; ctx.fillText(level.name, W / 2, 240);
-  if (bestTimes.length) { ctx.font = 'bold 13px sans-serif'; ctx.fillStyle = '#ffc94d'; ctx.fillText(`🏆 Best time: ${fmtTime(bestTimes[0].time)}`, W / 2, 263); }
+  if (bestTimes.length) { ctx.font = 'bold 13px sans-serif'; ctx.fillStyle = '#ffc94d'; ctx.fillText(`🏆 Best time: ${fmtTime(bestTimes[0].time)} — ${bestTimes[0].name || 'Knight'}`, W / 2, 263); }
   ctx.font = '14px sans-serif'; ctx.fillStyle = '#f3e5c3';
   ['Venture into the forest ➡️ Chop trees 🌲 mine rocks 🪨 and iron ⚙️',
    'Fight goblins 👺 — they drop materials when defeated!',
@@ -103,13 +103,18 @@ function drawEnd(win) {
     ctx.font = 'bold 20px sans-serif'; ctx.fillStyle = '#fff';
     ctx.fillText(`⏱ Your time: ${fmtTime(lastRun.time)}${lastRun.rank === 0 ? '  🏆 NEW BEST!' : ''}`, W / 2, 192);
   }
-  ctx.font = 'bold 15px sans-serif'; ctx.fillStyle = '#c9b68a'; ctx.fillText('— BEST TIMES —', W / 2, 235);
+  if (enteringName) {
+    ctx.font = 'bold 13px sans-serif'; ctx.fillStyle = '#fff';
+    ctx.fillText('⌨️ Type your name, then press Enter — or tap the screen to type', W / 2, 218);
+  }
+  ctx.font = 'bold 15px sans-serif'; ctx.fillStyle = '#c9b68a'; ctx.fillText('— BEST TIMES —', W / 2, 242);
   bestTimes.forEach((e, i) => {
     const isNew = lastRun && i === lastRun.rank;
+    const nm = isNew && enteringName ? nameBuf + (Math.floor(t / 30) % 2 ? '_' : ' ') : (e.name || 'Knight');
     ctx.font = isNew ? 'bold 16px sans-serif' : '14px sans-serif';
     ctx.fillStyle = isNew ? '#ffc94d' : '#f3e5c3';
-    ctx.fillText(`${isNew ? '→ ' : ''}${i + 1}.  ${fmtTime(e.time)}   (${e.date})`, W / 2, 262 + i * 24);
+    ctx.fillText(`${isNew ? '→ ' : ''}${i + 1}.  ${nm} — ${fmtTime(e.time)}   (${e.date})`, W / 2, 268 + i * 24);
   });
-  ctx.font = 'bold 16px sans-serif'; ctx.fillStyle = '#fff'; ctx.fillText('— tap or click to play again —', W / 2, H - 40);
+  if (!enteringName) { ctx.font = 'bold 16px sans-serif'; ctx.fillStyle = '#fff'; ctx.fillText('— tap or click to play again —', W / 2, H - 40); }
   ctx.textAlign = 'left';
 }
