@@ -72,6 +72,16 @@ function drawHUD() {
   ctx.textAlign = 'right'; ctx.fillText(muted ? '🔇 M' : '🔊 M', W - 16, H - 10); ctx.textAlign = 'left';
 }
 
+function drawPause() {
+  ctx.fillStyle = '#14101fcc'; ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'center';
+  ctx.font = '54px serif'; ctx.fillText('⏸', W / 2, H / 2 - 44);
+  ctx.font = 'bold 30px sans-serif'; ctx.fillStyle = '#ffc94d'; ctx.fillText('PAUSED', W / 2, H / 2 + 6);
+  ctx.font = '14px sans-serif'; ctx.fillStyle = '#f3e5c3'; ctx.fillText(`⏱ ${fmtTime(runTime)} — timer and enemies are frozen`, W / 2, H / 2 + 36);
+  ctx.font = 'bold 15px sans-serif'; ctx.fillStyle = '#fff'; ctx.fillText('press Y to resume', W / 2, H / 2 + 68);
+  ctx.textAlign = 'left';
+}
+
 function drawTitle() {
   ctx.fillStyle = '#1a1430'; ctx.fillRect(0, 0, W, H);
   ctx.font = '70px serif'; ctx.textAlign = 'center'; ctx.fillText('🏰', W / 2, 150);

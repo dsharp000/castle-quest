@@ -27,6 +27,11 @@ cv.addEventListener('pointerdown', () => {
 });
 addEventListener('keydown', () => { if (scene === 'title') scene = 'game'; });
 
+// Y toggles pause (freezes timer, enemies, player — everything).
+const togglePause = () => { if (scene === 'game') paused = !paused; };
+addEventListener('keydown', e => { if (e.key === 'y' || e.key === 'Y') togglePause(); });
+(() => { const b = document.getElementById('bP'); if (b) b.addEventListener('click', togglePause); })();
+
 // Typing a name for the best-times table on the win screen.
 addEventListener('keydown', e => {
   if (!enteringName || scene !== 'win') return;

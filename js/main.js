@@ -31,7 +31,7 @@ function loadLevel(i) {
 
 function reset() {
   loadLevel(0);
-  scene = 'game'; t = 0; wave = 0; menuOpen = false; runTime = 0; lastRun = null; enteringName = false;
+  scene = 'game'; t = 0; wave = 0; menuOpen = false; runTime = 0; lastRun = null; enteringName = false; paused = false;
   player = makePlayer(level.playerStart);
   res = { wood: 0, stone: 0, iron: 0 };
   castle = { x: level.castle.x, w: level.castle.w, hp: level.castle.hp, maxHp: level.castle.hp, walls: 0, towers: 0, keep: 1 };
@@ -69,7 +69,11 @@ function update() {
 reset(); scene = 'title';
 function loop() {
   t++;
-  if (scene === 'game') { if (menuOpen) updateMenu(); update(); draw(); }
+  if (scene === 'game') {
+    if (!paused) { if (menuOpen) updateMenu(); update(); }
+    draw();
+    if (paused) drawPause();
+  }
   else if (scene === 'title') drawTitle();
   else drawEnd(scene === 'win');
   requestAnimationFrame(loop);

@@ -12,7 +12,7 @@ const near = (a, b, d) => Math.abs(a - b) < d;
 const worldX = x => x < 0 ? WORLD_W + x : x;
 
 // ---- shared mutable state (see main.js reset()) ----
-var scene = 'title', t = 0, msg = null, msgT = 0;
+var scene = 'title', t = 0, msg = null, msgT = 0, paused = false;
 var level, WORLD_W, GROUND;
 var player, res, castle, trees, rocks, ores, goblins, raiders, arrows, parts,
     platforms, raidTimer, wave, menuOpen, troll, chest, dropBag, runTime, lastRun,

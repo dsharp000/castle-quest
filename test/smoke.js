@@ -115,6 +115,14 @@ player.x = 3000;
 keys.U = true; frame(1); keys.U = false;
 check('teleport blocked during cooldown', player.x === 3000);
 
+reset();
+paused = true;
+var rt0 = runTime, rd0 = raidTimer, px0 = player.x;
+keys.R = true; frame(30); keys.R = false;
+check('pause freezes timer, raids and player', runTime === rt0 && raidTimer === rd0 && player.x === px0);
+paused = false; frame(5);
+check('resume unfreezes the game', runTime === rt0 + 5);
+
 var sfxOk = true;
 try { Object.keys(sfx).forEach(function (k) { sfx[k](); }); toggleMute(); toggleMute(); musicTick(); }
 catch (e) { sfxOk = false; }

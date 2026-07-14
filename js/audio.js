@@ -132,7 +132,7 @@ function musicTick() {
   }
 }
 function playStep(s, t0, raid) {
-  if (muted || scene !== 'game') return;
+  if (muted || scene !== 'game' || paused) return;
   const mel = raid ? MEL_RAID : MEL_PEACE, stepDur = raid ? 0.16 : 0.22;
   if (mel[s]) pluck(musicBus, midi(mel[s]), 0.16, t0);
   if (s % 8 === 0) { // drone: D2 + A2, re-bowed each bar
