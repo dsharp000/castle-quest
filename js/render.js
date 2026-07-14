@@ -53,6 +53,9 @@ function drawHUD() {
   ctx.font = '16px sans-serif';
   let hearts = ''; for (let i = 0; i < player.maxHp; i++) hearts += i < player.hp ? '❤️' : '🖤';
   ctx.fillText(hearts, 16, 30);
+  // speedrun timer
+  ctx.textAlign = 'center'; ctx.fillStyle = '#ffe9a8'; ctx.font = 'bold 16px sans-serif';
+  ctx.fillText(`⏱ ${fmtTime(runTime)}`, W / 2, 30); ctx.textAlign = 'left';
   ctx.fillStyle = '#ffe9a8'; ctx.font = 'bold 14px sans-serif';
   ctx.fillText(`🪵 ${res.wood}   🪨 ${res.stone}   ⚙️ ${res.iron}   ⚔️ dmg ${swordDmg()}`, 16, 48);
   // castle hp + raid countdown
@@ -74,6 +77,7 @@ function drawTitle() {
   ctx.font = '70px serif'; ctx.textAlign = 'center'; ctx.fillText('🏰', W / 2, 150);
   ctx.font = 'bold 42px sans-serif'; ctx.fillStyle = '#ffc94d'; ctx.fillText('CASTLE QUEST', W / 2, 210);
   ctx.font = 'bold 20px sans-serif'; ctx.fillStyle = '#c9b68a'; ctx.fillText(level.name, W / 2, 240);
+  if (bestTimes.length) { ctx.font = 'bold 13px sans-serif'; ctx.fillStyle = '#ffc94d'; ctx.fillText(`🏆 Best time: ${fmtTime(bestTimes[0].time)}`, W / 2, 263); }
   ctx.font = '14px sans-serif'; ctx.fillStyle = '#f3e5c3';
   ['Venture into the forest ➡️ Chop trees 🌲 mine rocks 🪨 and iron ⚙️',
    'Fight goblins 👺 — they drop materials when defeated!',
@@ -85,10 +89,27 @@ function drawTitle() {
 
 function drawEnd(win) {
   ctx.fillStyle = '#1a1430ee'; ctx.fillRect(0, 0, W, H);
-  ctx.textAlign = 'center'; ctx.font = '70px serif'; ctx.fillText(win ? '👑' : '💀', W / 2, 180);
-  ctx.font = 'bold 36px sans-serif'; ctx.fillStyle = win ? '#ffc94d' : '#e5484d';
-  ctx.fillText(win ? 'YOUR CASTLE IS COMPLETE!' : 'THE CASTLE HAS FALLEN', W / 2, 240);
-  ctx.font = '16px sans-serif'; ctx.fillStyle = '#f3e5c3';
-  ctx.fillText(win ? 'You gathered, built, forged and defended. A true knight! 🛡️' : 'The raiders broke through… rebuild and try again!', W / 2, 280);
-  ctx.font = 'bold 16px sans-serif'; ctx.fillStyle = '#fff'; ctx.fillText('— tap or click to play again —', W / 2, 330); ctx.textAlign = 'left';
+  ctx.textAlign = 'center';
+  if (!win) {
+    ctx.font = '70px serif'; ctx.fillText('💀', W / 2, 180);
+    ctx.font = 'bold 36px sans-serif'; ctx.fillStyle = '#e5484d'; ctx.fillText('THE CASTLE HAS FALLEN', W / 2, 240);
+    ctx.font = '16px sans-serif'; ctx.fillStyle = '#f3e5c3'; ctx.fillText('The raiders broke through… rebuild and try again!', W / 2, 280);
+    ctx.font = 'bold 16px sans-serif'; ctx.fillStyle = '#fff'; ctx.fillText('— tap or click to play again —', W / 2, 330);
+    ctx.textAlign = 'left'; return;
+  }
+  ctx.font = '54px serif'; ctx.fillText('👑', W / 2, 105);
+  ctx.font = 'bold 32px sans-serif'; ctx.fillStyle = '#ffc94d'; ctx.fillText('YOUR CASTLE IS COMPLETE!', W / 2, 150);
+  if (lastRun) {
+    ctx.font = 'bold 20px sans-serif'; ctx.fillStyle = '#fff';
+    ctx.fillText(`⏱ Your time: ${fmtTime(lastRun.time)}${lastRun.rank === 0 ? '  🏆 NEW BEST!' : ''}`, W / 2, 192);
+  }
+  ctx.font = 'bold 15px sans-serif'; ctx.fillStyle = '#c9b68a'; ctx.fillText('— BEST TIMES —', W / 2, 235);
+  bestTimes.forEach((e, i) => {
+    const isNew = lastRun && i === lastRun.rank;
+    ctx.font = isNew ? 'bold 16px sans-serif' : '14px sans-serif';
+    ctx.fillStyle = isNew ? '#ffc94d' : '#f3e5c3';
+    ctx.fillText(`${isNew ? '→ ' : ''}${i + 1}.  ${fmtTime(e.time)}   (${e.date})`, W / 2, 262 + i * 24);
+  });
+  ctx.font = 'bold 16px sans-serif'; ctx.fillStyle = '#fff'; ctx.fillText('— tap or click to play again —', W / 2, H - 40);
+  ctx.textAlign = 'left';
 }

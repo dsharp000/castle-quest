@@ -1,4 +1,17 @@
-// Level loading, reset, per-frame update orchestration, and the game loop.
+// Level loading, reset, per-frame update orchestration, the game loop,
+// and the speedrun best-times table (persisted in localStorage).
+
+var bestTimes = (() => {
+  try { return (typeof localStorage !== 'undefined' && JSON.parse(localStorage.getItem('cq-times'))) || []; }
+  catch (e) { return []; }
+})();
+function saveTime(frames) {
+  bestTimes.push({ time: frames, date: new Date().toLocaleDateString() });
+  bestTimes.sort((a, b) => a.time - b.time);
+  bestTimes = bestTimes.slice(0, 5);
+  if (typeof localStorage !== 'undefined') localStorage.setItem('cq-times', JSON.stringify(bestTimes));
+  return bestTimes.findIndex(e => e.time === frames); // rank in the table, or -1 if it didn't make top 5
+}
 
 function loadLevel(i) {
   level = LEVELS[i];
@@ -8,7 +21,7 @@ function loadLevel(i) {
 
 function reset() {
   loadLevel(0);
-  scene = 'game'; t = 0; wave = 0; menuOpen = false;
+  scene = 'game'; t = 0; wave = 0; menuOpen = false; runTime = 0; lastRun = null;
   player = makePlayer(level.playerStart);
   res = { wood: 0, stone: 0, iron: 0 };
   castle = { x: level.castle.x, w: level.castle.w, hp: level.castle.hp, maxHp: level.castle.hp, walls: 0, towers: 0, keep: 1 };
@@ -25,6 +38,7 @@ function reset() {
 }
 
 function update() {
+  runTime++;
   if (msgT > 0) msgT--;
   updatePlayer();
   updateGoblins();
@@ -35,7 +49,7 @@ function update() {
   // lose / win
   if (castle.hp <= 0) { scene = 'over'; sfx.lose(); }
   const goal = level.goal;
-  if (castle.keep >= goal.keep && castle.walls >= goal.walls && castle.towers >= goal.towers && !troll.alive) { scene = 'win'; sfx.win(); }
+  if (castle.keep >= goal.keep && castle.walls >= goal.walls && castle.towers >= goal.towers && !troll.alive) { scene = 'win'; sfx.win(); lastRun = { time: runTime, rank: saveTime(runTime) }; }
 }
 
 reset(); scene = 'title';
