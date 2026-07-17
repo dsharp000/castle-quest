@@ -14,20 +14,22 @@ plain `<script>` tags share globals (NOT ES modules), so double-clicking
 | `js/config.js` | canvas handles (`cv`,`ctx`,`W`,`H`), constants, helpers (`rand`,`ri`,`near`,`worldX`), declarations of all shared globals, `say()` |
 | `js/input.js` | keyboard/touch → `keys` flags: `L R` move, `J` jump/menu-up, `A` attack/buy, `E` build menu, `U` teleport; plus direct toggles (`Y` pause, win-screen name typing) |
 | `js/audio.js` | Web Audio: procedural `sfx.*` effects + looping chiptune music (raid variant); mute = M key / 🔊 button, persisted in localStorage `cq-muted` |
-| `levels/level1.js` | `LEVELS` array — pure data: platforms, resource/goblin bands, boss, chest loot, raid pacing, win goal. Add a level = add an entry (then wire selection in `main.js`) |
+| `levels/*.js` | `LEVELS` array — pure data: platforms, resource/goblin bands, boss (hp/dmg/colors), chest loot, raid pacing (incl. `hpBonus`), `goblinHp`, win goal, background `theme`. Add a level = new file pushing an entry + a `<script>` tag in `index.html`; the title screen picks it up automatically |
 | `js/world.js` | trees/rocks/ores (spawn, respawn, drawing), particles (`puff`/`pop`), treasure chest |
 | `js/player.js` | knight movement/physics, `swing()` (gathering AND melee), `hurtPlayer()`, player drawing |
 | `js/enemies.js` | goblin AI, raider waves, troll boss, `killEnemy()` drops, enemy drawing |
 | `js/castle.js` | build/craft `MENU`, tower auto-fire + arrows, castle & menu drawing |
 | `js/render.js` | background/parallax, HUD, `bar()` health bars, title/end screens, `draw()` orchestration |
-| `js/main.js` | `reset()`, `update()` call order, game loop, scenes (`title`/`game`/`over`/`win`) |
+| `js/main.js` | `reset()`, `update()` call order, game loop, scenes (`title`/`game`/`over`/`win`), per-level best-times tables (`allTimes` in localStorage `cq-times-v2`; old `cq-times` migrates to level 1) |
 
 ## Conventions
 
 - Shared mutable state is top-level globals **declared in `config.js`**,
   assigned in `main.js reset()`: `player, res, castle, trees, rocks, ores,
   goblins, raiders, arrows, parts, platforms, raidTimer, wave, menuOpen,
-  troll, chest, level, scene, t`.
+  troll, chest, level, scene, t`. Level selection: `selLevel` is the
+  title-screen choice (←/→ or tap a card), `loadLevel()` applies it and swaps
+  `bestTimes` to that level's table.
 - Each entity's update AND draw functions live in the same module.
 - Time: `t` increments once per frame (~60 fps). Timers count frames
   (`60 * seconds`). Throttled events use `t % N === 0`.

@@ -9,21 +9,22 @@ function bar(x, y, f) {
 }
 
 function drawBackground(cx) {
+  const th = level.theme || {}; // per-level palette; defaults = forest
   const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, '#241b3d'); g.addColorStop(.6, '#4a3568'); g.addColorStop(.61, '#2e4423'); g.addColorStop(1, '#22331a');
+  g.addColorStop(0, th.sky0 || '#241b3d'); g.addColorStop(.6, th.sky1 || '#4a3568'); g.addColorStop(.61, th.deep0 || '#2e4423'); g.addColorStop(1, th.deep1 || '#22331a');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   ctx.font = '26px serif'; ctx.fillText('🌕', W - 70 - cx * 0.02, 60);
   ctx.font = '12px serif'; ctx.fillText('✦', 120 - cx * 0.03, 50); ctx.fillText('✦', 420 - cx * 0.03, 90); ctx.fillText('✦', 700 - cx * 0.03, 40);
   // far hills
-  ctx.fillStyle = '#332a52';
+  ctx.fillStyle = th.hills || '#332a52';
   for (let i = 0; i < 8; i++) { const hx = ((i * 520 - cx * 0.25) % (W + 600)) - 300; ctx.beginPath(); ctx.ellipse(hx, H * 0.62, 260, 110, 0, Math.PI, 0); ctx.fill(); }
   // far tree silhouettes
-  ctx.fillStyle = '#2a2244';
+  ctx.fillStyle = th.far || '#2a2244';
   for (let i = 0; i < 20; i++) { const hx = ((i * 230 - cx * 0.5) % (W + 300)) - 150; ctx.beginPath(); ctx.moveTo(hx, 310); ctx.lineTo(hx + 26, 190); ctx.lineTo(hx + 52, 310); ctx.fill(); }
   // ground
-  ctx.fillStyle = '#3d5a2e'; ctx.fillRect(0, GROUND, W, H - GROUND);
-  ctx.fillStyle = '#2e4423'; ctx.fillRect(0, GROUND, W, 8);
-  ctx.fillStyle = '#4a6b38';
+  ctx.fillStyle = th.ground || '#3d5a2e'; ctx.fillRect(0, GROUND, W, H - GROUND);
+  ctx.fillStyle = th.edge || '#2e4423'; ctx.fillRect(0, GROUND, W, 8);
+  ctx.fillStyle = th.tufts || '#4a6b38';
   for (let i = 0; i < 30; i++) { const gx = ((i * 160 - cx) % (W + 200)) - 100; ctx.fillRect(gx, GROUND + (i * 7 % 40) + 12, 14, 3); }
 }
 
@@ -82,19 +83,35 @@ function drawPause() {
   ctx.textAlign = 'left';
 }
 
+// Level-select card geometry — shared with the tap handler in input.js.
+function titleCard(i) {
+  const w = 330, gap = 20, total = LEVELS.length * (w + gap) - gap;
+  return { x: W / 2 - total / 2 + i * (w + gap), y: 296, w, h: 92 };
+}
+
 function drawTitle() {
   ctx.fillStyle = '#1a1430'; ctx.fillRect(0, 0, W, H);
-  ctx.font = '70px serif'; ctx.textAlign = 'center'; ctx.fillText('🏰', W / 2, 150);
-  ctx.font = 'bold 42px sans-serif'; ctx.fillStyle = '#ffc94d'; ctx.fillText('CASTLE QUEST', W / 2, 210);
-  ctx.font = 'bold 20px sans-serif'; ctx.fillStyle = '#c9b68a'; ctx.fillText(level.name, W / 2, 240);
-  if (bestTimes.length) { ctx.font = 'bold 13px sans-serif'; ctx.fillStyle = '#ffc94d'; ctx.fillText(`🏆 Best time: ${fmtTime(bestTimes[0].time)} — ${bestTimes[0].name || 'Knight'}`, W / 2, 263); }
-  ctx.font = '14px sans-serif'; ctx.fillStyle = '#f3e5c3';
-  ['Venture into the forest ➡️ Chop trees 🌲 mine rocks 🪨 and iron ⚙️',
-   'Fight goblins 👺 — they drop materials when defeated!',
+  ctx.font = '58px serif'; ctx.textAlign = 'center'; ctx.fillText('🏰', W / 2, 115);
+  ctx.font = 'bold 42px sans-serif'; ctx.fillStyle = '#ffc94d'; ctx.fillText('CASTLE QUEST', W / 2, 168);
+  ctx.font = '13px sans-serif'; ctx.fillStyle = '#f3e5c3';
+  ['Venture out ➡️ chop trees 🌲 mine rocks 🪨 and iron ⚙️ — goblins 👺 drop loot!',
    'Return to your castle to build walls, towers & forge your sword',
-   'Defend against raids… defeat the troll 🧌 and complete your castle!'].forEach((s, i) => ctx.fillText(s, W / 2, 290 + i * 26));
-  ctx.font = 'bold 18px sans-serif'; ctx.fillStyle = Math.floor(t / 30) % 2 ? '#ffc94d' : '#fff';
-  ctx.fillText('— press any key or tap to start —', W / 2, H - 50); ctx.textAlign = 'left';
+   'Defend against raids… defeat the troll 🧌 and complete your castle!'].forEach((s, i) => ctx.fillText(s, W / 2, 200 + i * 22));
+  ctx.font = 'bold 13px sans-serif'; ctx.fillStyle = '#c9b68a'; ctx.fillText('— CHOOSE YOUR QUEST —', W / 2, 284);
+  LEVELS.forEach((lv, i) => {
+    const c = titleCard(i), sel = i === selLevel;
+    ctx.fillStyle = sel ? '#3a2f4a' : '#241d33'; ctx.fillRect(c.x, c.y, c.w, c.h);
+    ctx.strokeStyle = sel ? '#ffc94d' : '#4a3a5a'; ctx.lineWidth = sel ? 3 : 2; ctx.strokeRect(c.x, c.y, c.w, c.h);
+    ctx.font = 'bold 17px sans-serif'; ctx.fillStyle = sel ? '#ffc94d' : '#c9b68a';
+    ctx.fillText(`${i + 1}. ${lv.name}`, c.x + c.w / 2, c.y + 28);
+    ctx.font = '12px sans-serif'; ctx.fillStyle = '#e8b640'; ctx.fillText(lv.tag || '', c.x + c.w / 2, c.y + 50);
+    const b = levelBest(i);
+    ctx.fillStyle = '#f3e5c3';
+    ctx.fillText(b ? `🏆 best: ${fmtTime(b.time)} — ${b.name || 'Knight'}` : 'no times yet — be the first!', c.x + c.w / 2, c.y + 72);
+  });
+  ctx.font = 'bold 16px sans-serif'; ctx.fillStyle = Math.floor(t / 30) % 2 ? '#ffc94d' : '#fff';
+  ctx.fillText('←/→ or tap a card to choose • any other key (or tap it again) to start', W / 2, H - 42);
+  ctx.textAlign = 'left';
 }
 
 function drawEnd(win) {
@@ -117,7 +134,7 @@ function drawEnd(win) {
     ctx.font = 'bold 13px sans-serif'; ctx.fillStyle = '#fff';
     ctx.fillText('⌨️ Type your name, then press Enter — or tap the screen to type', W / 2, 218);
   }
-  ctx.font = 'bold 15px sans-serif'; ctx.fillStyle = '#c9b68a'; ctx.fillText('— BEST TIMES —', W / 2, 242);
+  ctx.font = 'bold 15px sans-serif'; ctx.fillStyle = '#c9b68a'; ctx.fillText(`— BEST TIMES: ${level.name.toUpperCase()} —`, W / 2, 242);
   bestTimes.forEach((e, i) => {
     const isNew = lastRun && i === lastRun.rank;
     const nm = isNew && enteringName ? nameBuf + (Math.floor(t / 30) % 2 ? '_' : ' ') : (e.name || 'Knight');

@@ -4,12 +4,12 @@ const castleDef = () => castle.walls * 10;
 const castleRight = () => castle.x + castle.w + castle.walls * 18;
 
 const MENU = [
-  { n: '🧱 Build Wall', cost: { wood: 5, stone: 5 }, info: 'Slows raiders (+10 def)', act: () => castle.walls++ },
-  { n: '🗼 Build Tower', cost: { wood: 3, stone: 8 }, info: 'Auto-shoots arrows at raiders', act: () => castle.towers++ },
-  { n: '🏰 Upgrade Keep', cost: { wood: 8, stone: 8, iron: 4 }, info: 'Grow the castle (need lvl 3 to win)', act: () => { castle.keep++; castle.hp = Math.min(castle.maxHp, castle.hp + 20); } },
-  { n: '⚔️ Forge Sword', cost: { wood: 2, iron: 4 }, info: '+1 damage', act: () => player.swordLvl++ },
-  { n: '🔨 Repair (+30)', cost: { wood: 3, stone: 3 }, info: 'Restore castle HP', act: () => castle.hp = Math.min(castle.maxHp, castle.hp + 30) },
-  { n: '❤️ Feast (+HP)', cost: { wood: 2 }, info: 'Heal yourself fully', act: () => player.hp = player.maxHp },
+  { n: '🧱 Build Wall', cost: { wood: 6, stone: 7 }, info: 'Slows raiders (+10 def)', act: () => castle.walls++ },
+  { n: '🗼 Build Tower', cost: { wood: 5, stone: 10 }, info: 'Auto-shoots arrows at raiders', act: () => castle.towers++ },
+  { n: '🏰 Upgrade Keep', cost: { wood: 10, stone: 10, iron: 5 }, info: () => `Grow the castle (need lvl ${level.goal.keep} to win)`, act: () => { castle.keep++; castle.hp = Math.min(castle.maxHp, castle.hp + 20); } },
+  { n: '⚔️ Forge Sword', cost: { wood: 3, iron: 5 }, info: '+1 damage', act: () => player.swordLvl++ },
+  { n: '🔨 Repair (+30)', cost: { wood: 4, stone: 4 }, info: 'Restore castle HP', act: () => castle.hp = Math.min(castle.maxHp, castle.hp + 30) },
+  { n: '❤️ Feast (+1)', cost: { wood: 3 }, info: 'Heal 1 heart', act: () => player.hp = Math.min(player.maxHp, player.hp + 1) },
 ];
 var menuSel = 0;
 
@@ -36,8 +36,8 @@ cv.addEventListener('click', e => {
 
 // Towers auto-fire homing arrows at raiders.
 function updateTowers() {
-  if (t % 25 === 0 && castle.towers > 0) {
-    const targets = raiders.filter(r => r.hp > 0 && r.x < castle.x + 900);
+  if (t % 40 === 0 && castle.towers > 0) {
+    const targets = raiders.filter(r => r.hp > 0 && r.x < castle.x + 600);
     for (let i = 0; i < Math.min(castle.towers, targets.length); i++) {
       arrows.push({ x: castle.x + 120, y: GROUND - 160, tx: targets[i], vx: 0, vy: 0 });
       sfx.arrow();
@@ -91,7 +91,7 @@ function drawMenu() {
     ctx.fillStyle = sel ? '#7a5230' : '#3a2f4a'; ctx.fillRect(W / 2 - 190, y - 18, 380, 40);
     ctx.fillStyle = afford ? '#fff' : '#999'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'left';
     ctx.fillText(m.n, W / 2 - 178, y);
-    ctx.font = '10px sans-serif'; ctx.fillStyle = '#c9b68a'; ctx.fillText(m.info, W / 2 - 178, y + 14);
+    ctx.font = '10px sans-serif'; ctx.fillStyle = '#c9b68a'; ctx.fillText(typeof m.info === 'function' ? m.info() : m.info, W / 2 - 178, y + 14);
     ctx.textAlign = 'right'; ctx.font = '12px sans-serif'; ctx.fillStyle = afford ? '#ffe9a8' : '#e5484d';
     ctx.fillText(Object.entries(m.cost).map(([k, v]) => `${v}${{ wood: '🪵', stone: '🪨', iron: '⚙️' }[k]}`).join(' '), W / 2 + 178, y + 6);
   });

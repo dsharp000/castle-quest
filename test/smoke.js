@@ -30,7 +30,7 @@ var read = function (p) { return $.NSString.stringWithContentsOfFileEncodingErro
 var base = $.NSFileManager.defaultManager.currentDirectoryPath.js;
 // JavaScriptCore drops top-level const/let bindings between eval() calls,
 // so rewrite them to var when loading (test harness only — files are unchanged).
-['js/config.js', 'levels/level1.js', 'js/input.js', 'js/audio.js', 'js/world.js',
+['js/config.js', 'levels/level1.js', 'levels/level2.js', 'js/input.js', 'js/audio.js', 'js/world.js',
  'js/player.js', 'js/enemies.js', 'js/castle.js', 'js/render.js', 'js/main.js']
   .forEach(function (f) { (1, eval)(read(base + '/' + f).replace(/\b(const|let)\s+/g, 'var ')); });
 
@@ -114,6 +114,53 @@ check('teleport returns player to castle', Math.abs(player.x - (castle.x + castl
 player.x = 3000;
 keys.U = true; frame(1); keys.U = false;
 check('teleport blocked during cooldown', player.x === 3000);
+
+reset();
+raidTimer = 1; frame(2);
+goblins = []; // keep goblins out of sword reach for this check
+var rd1 = raiders[0], rd2 = raiders[1];
+// space them out: far enough apart that a swing only reaches one, close
+// enough that the first stays within chase range (320) during both hits
+rd1.x = 2000; rd2.x = 2150; raiders.slice(2).forEach(function (r) { r.x = 3800; });
+player.x = 2040; player.y = GROUND; player.face = -1;
+keys.A = true; frame(1); keys.A = false;
+check('back-attacked raider turns on the player', rd1.turned === true);
+player.x = 2190; player.face = -1; player.atkCd = 0;
+keys.A = true; frame(1); keys.A = false;
+check('only one raider turns at a time', rd2.hp < rd2.max && !rd2.turned);
+
+reset();
+goblins.forEach(function (g) { g.hp = 0; });
+player.x = 3000; player.y = GROUND;
+frame(600);
+check('goblins stay dead while player is far away', goblins.length === 0);
+player.x = castleRight() + 40;
+frame(301);
+check('goblins respawn near the castle wall', goblins.length > 0);
+goblins.forEach(function (g) { g.hp = 0; });
+player.x = 3000;
+respawnWait = 60 * 60; frame(301);
+check('goblins respawn after the hidden minute timer', goblins.length > 0);
+
+// ---- level 2: own world, tougher enemies, own goal, separate best times ----
+selLevel = 1; reset();
+check('level 2 loads with its own world', level === LEVELS[1] && WORLD_W === LEVELS[1].worldW && trees.length > 0);
+check('level 2 goblins are tougher', goblins[0].hp === 4 && goblins[0].max === 4);
+raidTimer = 1; frame(2);
+check('level 2 raiders get bonus hp', raiders.length > 0 && raiders[0].hp === 4 && raiders[0].max === 4);
+check('level 2 best-times table starts empty', bestTimes.length === 0);
+trees = []; rocks = []; ores = []; goblins = []; raiders = [];
+troll.hp = 1; player.x = troll.x - 30; player.y = GROUND; player.face = 1;
+keys.A = true; frame(30); keys.A = false;
+check('level 2 troll can be defeated', !troll.alive);
+castle.keep = 3; castle.walls = 2; castle.towers = 2; frame(1);
+check('level 1 goal is not enough on level 2', scene === 'game');
+castle.keep = 4; castle.walls = 3; castle.towers = 3; frame(1);
+check('level 2 win uses its own goal', scene === 'win');
+check('time saved to level 2 table only', bestTimes.length === 1 && allTimes[1] === bestTimes && allTimes[0].length === 1 && allTimes[0][0] !== bestTimes[0]);
+enteringName = false;
+selLevel = 0; reset();
+check('level 1 keeps its own best times', level === LEVELS[0] && bestTimes.length === 1 && bestTimes[0].name === 'Sir Dave');
 
 reset();
 paused = true;

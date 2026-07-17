@@ -6,6 +6,7 @@ const LEVELS = [];
 
 LEVELS.push({
   name: 'Forest of Shadows',
+  tag: '⭐ Normal',
   worldW: 4200,
   groundY: 420,
   playerStart: 340,

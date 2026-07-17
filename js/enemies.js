@@ -1,7 +1,7 @@
 // Goblins (roaming + raiders) and the troll boss: AI, raids, drops, drawing.
 
-const newGob = x => ({ x, y: GROUND, vx: 0, hp: 3, max: 3, face: -1, home: x, state: 'patrol', dir: Math.random() < .5 ? 1 : -1, hurt: 0, atkCd: 0 });
-const newTroll = spec => ({ x: worldX(spec.x), y: GROUND, hp: spec.hp, max: spec.hp, name: spec.name, face: -1, atkT: 0, alive: true, hurt: 0 });
+const newGob = x => { const hp = level.goblinHp || 3; return { x, y: GROUND, vx: 0, hp, max: hp, face: -1, home: x, state: 'patrol', dir: Math.random() < .5 ? 1 : -1, hurt: 0, atkCd: 0 }; };
+const newTroll = spec => ({ x: worldX(spec.x), y: GROUND, hp: spec.hp, max: spec.hp, dmg: spec.dmg || 2, c1: spec.c1, c2: spec.c2, name: spec.name, face: -1, atkT: 0, alive: true, hurt: 0 });
 
 function updateGoblins() {
   const p = player;
@@ -17,12 +17,16 @@ function updateGoblins() {
     g.x += g.vx;
     if (Math.abs(dx) < 26 && Math.abs(p.y - g.y) < 50 && g.atkCd <= 0 && p.inv <= 0) { hurtPlayer(1); g.atkCd = 50; }
   }
-  // keep the forest populated
+  // keep the forest populated — but cleared areas stay cleared until the
+  // player returns near the castle wall (120px) or a minute passes (hidden timer)
   goblins = goblins.filter(g => g.hp > 0);
-  if (goblins.length < level.goblinMinAlive && t % 300 === 0) {
-    const z = level.goblinRespawnZone;
-    goblins.push(newGob(rand(z.from, worldX(z.to))));
-  }
+  if (goblins.length < level.goblinMinAlive) {
+    respawnWait++;
+    if ((near(p.x, castleRight(), 120) || respawnWait >= 60 * 60) && t % 300 === 0) {
+      const z = level.goblinRespawnZone;
+      goblins.push(newGob(rand(z.from, worldX(z.to))));
+    }
+  } else respawnWait = 0;
 }
 
 function updateTroll() {
@@ -31,7 +35,7 @@ function updateTroll() {
   const dx = player.x - troll.x;
   if (Math.abs(dx) < 200) {
     troll.x += Math.sign(dx) * 0.7; troll.face = Math.sign(dx);
-    if (Math.abs(dx) < 40 && troll.atkT <= 0 && player.inv <= 0) { hurtPlayer(2); troll.atkT = 70; }
+    if (Math.abs(dx) < 40 && troll.atkT <= 0 && player.inv <= 0) { hurtPlayer(troll.dmg); troll.atkT = 70; }
   }
   if (troll.atkT > 0) troll.atkT--;
 }
@@ -43,10 +47,14 @@ function updateRaiders() {
   for (const r of raiders) {
     if (r.hp <= 0) continue;
     if (r.hurt > 0) r.hurt--;
-    const target = castleRight() + 10;
-    if (r.x > target) { r.x -= 1.1; r.face = -1; }
-    else if (t % 20 === 0) { castle.hp -= Math.max(1, 3 - Math.floor(castleDef() / 20)); puff(castle.x + castle.w, GROUND - 40, '#ff6b5b', 4); }
     const dx = p.x - r.x;
+    if (r.turned && Math.abs(dx) > 320) r.turned = false; // lost the player — rejoin the raid
+    if (r.turned) { r.x += Math.sign(dx) * 1.2; r.face = Math.sign(dx) || -1; }
+    else {
+      const target = castleRight() + 10;
+      if (r.x > target) { r.x -= 1.1; r.face = -1; }
+      else if (t % 20 === 0) { castle.hp -= Math.max(1, 3 - Math.floor(castleDef() / 20)); puff(castle.x + castle.w, GROUND - 40, '#ff6b5b', 4); }
+    }
     if (Math.abs(dx) < 24 && Math.abs(p.y - r.y) < 50 && r.atkCd <= 0 && p.inv <= 0) { hurtPlayer(1); r.atkCd = 55; }
     if (r.atkCd > 0) r.atkCd--;
   }
@@ -57,7 +65,8 @@ function spawnRaid() {
   const n = Math.min(level.raids.baseCount + wave, level.raids.maxCount);
   say(`⚠️ RAID! ${n} goblins are attacking the castle!`, 220);
   sfx.raidHorn();
-  for (let i = 0; i < n; i++) raiders.push({ x: WORLD_W - rand(40, 300) - i * 50, y: GROUND, hp: 3 + Math.floor(wave / 2), max: 3, face: -1, hurt: 0, atkCd: 0, raider: true });
+  const hp = 3 + Math.floor(wave / 2) + (level.raids.hpBonus || 0);
+  for (let i = 0; i < n; i++) raiders.push({ x: WORLD_W - rand(40, 300) - i * 50, y: GROUND, hp, max: hp, face: -1, hurt: 0, atkCd: 0, raider: true });
 }
 
 function killEnemy(g) {
@@ -88,8 +97,8 @@ function drawTroll() {
   const tr = troll; ctx.save(); ctx.translate(tr.x, tr.y); ctx.scale(tr.face, 1);
   if (tr.hurt > 0) ctx.globalAlpha = 0.6;
   const bob = Math.sin(t / 7) * 3;
-  ctx.fillStyle = '#5a6b4a'; ctx.fillRect(-24, -70 + bob, 48, 58);
-  ctx.fillStyle = '#6b7c5a'; ctx.fillRect(-18, -95 + bob, 36, 28);
+  ctx.fillStyle = tr.c1 || '#5a6b4a'; ctx.fillRect(-24, -70 + bob, 48, 58);
+  ctx.fillStyle = tr.c2 || '#6b7c5a'; ctx.fillRect(-18, -95 + bob, 36, 28);
   ctx.fillStyle = '#e5484d'; ctx.fillRect(4, -88 + bob, 7, 7);
   ctx.fillStyle = '#3a2a1a'; ctx.fillRect(-22, -12, 14, 12); ctx.fillRect(8, -12, 14, 12);
   ctx.fillStyle = '#7a5230'; ctx.fillRect(22, -80 + bob, 10, 50);

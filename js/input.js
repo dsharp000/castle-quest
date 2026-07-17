@@ -16,8 +16,15 @@ const bindBtn = (id, k) => {
 bindBtn('bL', 'L'); bindBtn('bR', 'R'); bindBtn('bJ', 'J'); bindBtn('bA', 'A'); bindBtn('bE', 'E'); bindBtn('bT', 'U');
 
 // Scene transitions on any interaction.
-cv.addEventListener('pointerdown', () => {
-  if (scene === 'title') scene = 'game';
+cv.addEventListener('pointerdown', e => {
+  if (scene === 'title') { // tap an unselected card to pick it; anything else starts
+    const r = cv.getBoundingClientRect(), mx = (e.clientX - r.left) * (W / r.width), my = (e.clientY - r.top) * (H / r.height);
+    for (let i = 0; i < LEVELS.length; i++) {
+      const c = titleCard(i);
+      if (i !== selLevel && mx > c.x && mx < c.x + c.w && my > c.y && my < c.y + c.h) { selLevel = i; loadLevel(i); return; }
+    }
+    reset(); return;
+  }
   if (scene === 'win' && enteringName) { // touch devices have no keyboard — offer a dialog
     const n = prompt('Enter your name:', nameBuf);
     if (n !== null) { nameBuf = n; finishNameEntry(); }
@@ -25,7 +32,16 @@ cv.addEventListener('pointerdown', () => {
   }
   if (scene === 'over' || scene === 'win') reset();
 });
-addEventListener('keydown', () => { if (scene === 'title') scene = 'game'; });
+// Title screen keys: ←/→ pick a level, 1..9 jump straight in, anything else starts.
+// (M is left alone so muting doesn't launch the game.)
+addEventListener('keydown', e => {
+  if (scene !== 'title') return;
+  const k = e.key.toLowerCase(), d = parseInt(k, 10);
+  if (k === 'arrowleft' || k === 'a') { selLevel = (selLevel + LEVELS.length - 1) % LEVELS.length; loadLevel(selLevel); }
+  else if (k === 'arrowright' || k === 'd') { selLevel = (selLevel + 1) % LEVELS.length; loadLevel(selLevel); }
+  else if (d >= 1 && d <= LEVELS.length) { selLevel = d - 1; reset(); }
+  else if (k !== 'm') reset();
+});
 
 // Y toggles pause (freezes timer, enemies, player — everything).
 const togglePause = () => { if (scene === 'game') paused = !paused; };

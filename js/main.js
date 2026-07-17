@@ -1,12 +1,24 @@
 // Level loading, reset, per-frame update orchestration, the game loop,
 // and the speedrun best-times table (persisted in localStorage).
 
-var bestTimes = (() => {
-  try { return (typeof localStorage !== 'undefined' && JSON.parse(localStorage.getItem('cq-times'))) || []; }
-  catch (e) { return []; }
+// Each level keeps its own best-times table: allTimes[levelIdx] = [...entries].
+// Times saved before level 2 existed (old 'cq-times' key) migrate into slot 0.
+var allTimes = (() => {
+  try {
+    if (typeof localStorage === 'undefined') return [];
+    const v2 = JSON.parse(localStorage.getItem('cq-times-v2'));
+    if (v2) return v2;
+    const v1 = JSON.parse(localStorage.getItem('cq-times'));
+    return v1 ? [v1] : [];
+  } catch (e) { return []; }
 })();
+var bestTimes = []; // the CURRENT level's table — swapped by loadLevel()
+const levelBest = i => (allTimes[i] || [])[0]; // for the title-screen cards
 const lastName = () => (typeof localStorage !== 'undefined' && localStorage.getItem('cq-name')) || '';
-function persistTimes() { if (typeof localStorage !== 'undefined') localStorage.setItem('cq-times', JSON.stringify(bestTimes)); }
+function persistTimes() {
+  allTimes[levelIdx] = bestTimes;
+  if (typeof localStorage !== 'undefined') localStorage.setItem('cq-times-v2', JSON.stringify(allTimes));
+}
 function saveTime(frames) {
   bestTimes.push({ time: frames, date: new Date().toLocaleDateString(), name: lastName() || 'Knight' });
   bestTimes.sort((a, b) => a.time - b.time);
@@ -24,18 +36,20 @@ function finishNameEntry() {
 }
 
 function loadLevel(i) {
+  levelIdx = i;
   level = LEVELS[i];
   WORLD_W = level.worldW;
   GROUND = level.groundY;
+  bestTimes = allTimes[i] || [];
 }
 
 function reset() {
-  loadLevel(0);
+  loadLevel(selLevel);
   scene = 'game'; t = 0; wave = 0; menuOpen = false; runTime = 0; lastRun = null; enteringName = false; paused = false;
   player = makePlayer(level.playerStart);
   res = { wood: 0, stone: 0, iron: 0 };
   castle = { x: level.castle.x, w: level.castle.w, hp: level.castle.hp, maxHp: level.castle.hp, walls: 0, towers: 0, keep: 1 };
-  raidTimer = 60 * level.raids.firstDelaySec;
+  raidTimer = 60 * level.raids.firstDelaySec; respawnWait = 0;
   raiders = []; arrows = []; parts = [];
   platforms = level.platforms.map(p => ({ ...p }));
   trees = spawnBand(level.bands.trees, makeTree);

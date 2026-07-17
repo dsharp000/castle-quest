@@ -10,7 +10,7 @@ function updatePlayer() {
     if (keys.L) { p.vx = -sp; p.face = -1; p.walk++; }
     else if (keys.R) { p.vx = sp; p.face = 1; p.walk++; }
     else p.vx *= 0.7;
-    if (keys.J && p.g) { p.vy = -10.5; p.g = false; }
+    if (keys.J && p.g) { p.vy = -11.25; p.g = false; }
   } else p.vx = 0;
   p.vy += GRAV; p.x += p.vx; p.y += p.vy;
   p.x = Math.max(30, Math.min(WORLD_W - 30, p.x));
@@ -44,7 +44,7 @@ function updatePlayer() {
 function swing() {
   const p = player, reach = 46, hx = p.x + p.face * reach * 0.6;
   sfx.swing();
-  for (const g of [...goblins, ...raiders]) if (g.hp > 0 && near(hx, g.x, reach) && Math.abs(p.y - g.y) < 60) { g.hp -= swordDmg(); g.hurt = 8; g.x += p.face * 14; sfx.hit(); puff(g.x, g.y - 30, '#ff8a8a'); if (g.hp <= 0) killEnemy(g); return; }
+  for (const g of [...goblins, ...raiders]) if (g.hp > 0 && near(hx, g.x, reach) && Math.abs(p.y - g.y) < 60) { g.hp -= swordDmg(); g.hurt = 8; g.x += p.face * 14; sfx.hit(); puff(g.x, g.y - 30, '#ff8a8a'); if (g.hp <= 0) killEnemy(g); else if (g.raider && (p.x - g.x) * g.face < 0 && !raiders.some(r => r.turned && r.hp > 0)) g.turned = true; return; }
   if (troll.alive && near(hx, troll.x, reach + 20)) { troll.hp -= swordDmg(); troll.hurt = 8; sfx.hit(); puff(troll.x, troll.y - 50, '#ff8a8a'); if (troll.hp <= 0) { troll.alive = false; pop(troll.x, GROUND - 120, '💀 TROLL DEFEATED!'); say('🧌 The troll is defeated! Grab the treasure! →', 240); sfx.bossDie(); } return; }
   for (const tr of trees) if (tr.hp > 0 && near(hx, tr.x, reach) && p.y > GROUND - 60) { tr.hp--; sfx.chop(); puff(tr.x, GROUND - 60, '#7ec850'); if (tr.hp <= 0) { tr.respawn = 60 * 20; const n = ri(2, 4); res.wood += n; pop(tr.x, GROUND - 90, `+${n} 🪵`); sfx.pickup(); } return; }
   for (const rk of rocks) if (rk.hp > 0 && near(hx, rk.x, reach) && p.y > GROUND - 60) { rk.hp--; sfx.mine(); puff(rk.x, GROUND - 20, '#aaa'); if (rk.hp <= 0) { rk.respawn = 60 * 25; const n = ri(2, 3); res.stone += n; pop(rk.x, GROUND - 60, `+${n} 🪨`); sfx.pickup(); } return; }
