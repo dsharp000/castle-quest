@@ -35,13 +35,14 @@ function draw() {
   drawCastle();
   for (const pl of platforms) { ctx.fillStyle = '#6b4a2b'; ctx.fillRect(pl.x, pl.y, pl.w, 12); ctx.fillStyle = '#5cb85c'; ctx.fillRect(pl.x, pl.y, pl.w, 4); }
   drawWorld();
+  drawVillager();
   drawEnemies();
   drawArrows();
   drawPlayer();
   drawParticles();
   ctx.restore();                          // ---- screen space ----
   drawHUD();
-  if (menuOpen) drawMenu();
+  if (menuOpen) (menuMode === 'trade' ? drawTradeMenu : drawMenu)();
   if (msgT > 0) {
     ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#00000099';
     const w2 = ctx.measureText(msg).width + 30; ctx.fillRect(W / 2 - w2 / 2, 66, w2, 30);
@@ -58,7 +59,7 @@ function drawHUD() {
   ctx.textAlign = 'center'; ctx.fillStyle = '#ffe9a8'; ctx.font = 'bold 16px sans-serif';
   ctx.fillText(`⏱ ${fmtTime(runTime)}`, W / 2, 30); ctx.textAlign = 'left';
   ctx.fillStyle = '#ffe9a8'; ctx.font = 'bold 14px sans-serif';
-  ctx.fillText(`🪵 ${res.wood}   🪨 ${res.stone}   ⚙️ ${res.iron}   ⚔️ dmg ${swordDmg()}   🌀 ${player.tpCd > 0 ? Math.ceil(player.tpCd / 60) + 's' : 'ready (U)'}`, 16, 48);
+  ctx.fillText(`🪵 ${res.wood}   🪨 ${res.stone}   ⚙️ ${res.iron}   🪙 ${res.gold}   ⚔️ dmg ${swordDmg()}   🌀 ${player.tpCd > 0 ? Math.ceil(player.tpCd / 60) + 's' : 'ready (U)'}`, 16, 48);
   // castle hp + raid countdown
   ctx.textAlign = 'right';
   ctx.fillText(`🏰 ${Math.max(0, Math.ceil(castle.hp))}/${castle.maxHp}`, W - 16, 30);
@@ -79,7 +80,7 @@ function drawPause() {
   ctx.font = '54px serif'; ctx.fillText('⏸', W / 2, H / 2 - 44);
   ctx.font = 'bold 30px sans-serif'; ctx.fillStyle = '#ffc94d'; ctx.fillText('PAUSED', W / 2, H / 2 + 6);
   ctx.font = '14px sans-serif'; ctx.fillStyle = '#f3e5c3'; ctx.fillText(`⏱ ${fmtTime(runTime)} — timer and enemies are frozen`, W / 2, H / 2 + 36);
-  ctx.font = 'bold 15px sans-serif'; ctx.fillStyle = '#fff'; ctx.fillText('press Y to resume', W / 2, H / 2 + 68);
+  ctx.font = 'bold 15px sans-serif'; ctx.fillStyle = '#fff'; ctx.fillText('press Y to resume • Q to quit to the menu', W / 2, H / 2 + 68);
   ctx.textAlign = 'left';
 }
 
@@ -94,9 +95,9 @@ function drawTitle() {
   ctx.font = '58px serif'; ctx.textAlign = 'center'; ctx.fillText('🏰', W / 2, 115);
   ctx.font = 'bold 42px sans-serif'; ctx.fillStyle = '#ffc94d'; ctx.fillText('CASTLE QUEST', W / 2, 168);
   ctx.font = '13px sans-serif'; ctx.fillStyle = '#f3e5c3';
-  ['Venture out ➡️ chop trees 🌲 mine rocks 🪨 and iron ⚙️ — goblins 👺 drop loot!',
-   'Return to your castle to build walls, towers & forge your sword',
-   'Defend against raids… defeat the troll 🧌 and complete your castle!'].forEach((s, i) => ctx.fillText(s, W / 2, 200 + i * 22));
+  ['Venture out ⬅️➡️ chop trees 🌲 mine rocks 🪨 iron ⚙️ and gold 🪙 — goblins 👺 drop loot!',
+   'Your castle stands mid-world: build walls & towers — raids can strike from EITHER side!',
+   'Claim the legendary sword 🗡️ far west… slay the troll 🧌 far east… finish your castle!'].forEach((s, i) => ctx.fillText(s, W / 2, 200 + i * 22));
   ctx.font = 'bold 13px sans-serif'; ctx.fillStyle = '#c9b68a'; ctx.fillText('— CHOOSE YOUR QUEST —', W / 2, 284);
   LEVELS.forEach((lv, i) => {
     const c = titleCard(i), sel = i === selLevel;

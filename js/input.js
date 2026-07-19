@@ -1,7 +1,8 @@
 // Keyboard + touch input. Everything reads/writes flags on `keys`:
-// L/R = move, J = jump / menu up, A = attack / menu buy, E = build menu.
+// L/R = move, J = jump / menu up, A = attack / menu buy, E = build menu,
+// T = trade with the villager, U = teleport home.
 const keys = {};
-const KEYMAP = { ArrowLeft: 'L', a: 'L', ArrowRight: 'R', d: 'R', ArrowUp: 'J', w: 'J', ' ': 'J', j: 'A', x: 'A', z: 'A', e: 'E', Enter: 'E', u: 'U' };
+const KEYMAP = { ArrowLeft: 'L', a: 'L', ArrowRight: 'R', d: 'R', ArrowUp: 'J', w: 'J', ' ': 'J', j: 'A', x: 'A', z: 'A', e: 'E', Enter: 'E', u: 'U', t: 'T' };
 
 addEventListener('keydown', e => { const k = KEYMAP[e.key] || KEYMAP[e.key.toLowerCase()]; if (k) { keys[k] = true; e.preventDefault(); } });
 addEventListener('keyup', e => { const k = KEYMAP[e.key] || KEYMAP[e.key.toLowerCase()]; if (k) keys[k] = false; });
@@ -13,7 +14,7 @@ const bindBtn = (id, k) => {
   el.addEventListener('mousedown', () => keys[k] = true);
   el.addEventListener('mouseup', () => keys[k] = false);
 };
-bindBtn('bL', 'L'); bindBtn('bR', 'R'); bindBtn('bJ', 'J'); bindBtn('bA', 'A'); bindBtn('bE', 'E'); bindBtn('bT', 'U');
+bindBtn('bL', 'L'); bindBtn('bR', 'R'); bindBtn('bJ', 'J'); bindBtn('bA', 'A'); bindBtn('bE', 'E'); bindBtn('bT', 'U'); bindBtn('bTr', 'T');
 
 // Scene transitions on any interaction.
 cv.addEventListener('pointerdown', e => {
@@ -46,6 +47,12 @@ addEventListener('keydown', e => {
 // Y toggles pause (freezes timer, enemies, player — everything).
 const togglePause = () => { if (scene === 'game') paused = !paused; };
 addEventListener('keydown', e => { if (e.key === 'y' || e.key === 'Y') togglePause(); });
+
+// Q quits the current run back to the title screen (abandons the run).
+const quitToTitle = () => {
+  if (scene === 'game' || scene === 'over' || scene === 'win') { scene = 'title'; paused = false; menuOpen = false; }
+};
+addEventListener('keydown', e => { if ((e.key === 'q' || e.key === 'Q') && !enteringName) quitToTitle(); });
 (() => { const b = document.getElementById('bP'); if (b) b.addEventListener('click', togglePause); })();
 
 // Typing a name for the best-times table on the win screen.

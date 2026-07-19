@@ -23,7 +23,7 @@ function updateGoblins() {
   if (goblins.length < level.goblinMinAlive) {
     respawnWait++;
     if ((near(p.x, castleRight(), 120) || respawnWait >= 60 * 60) && t % 300 === 0) {
-      const z = level.goblinRespawnZone;
+      const zs = [].concat(level.goblinRespawnZone), z = zs[ri(0, zs.length - 1)];
       goblins.push(newGob(rand(z.from, worldX(z.to))));
     }
   } else respawnWait = 0;
@@ -50,10 +50,17 @@ function updateRaiders() {
     const dx = p.x - r.x;
     if (r.turned && Math.abs(dx) > 320) r.turned = false; // lost the player — rejoin the raid
     if (r.turned) { r.x += Math.sign(dx) * 1.2; r.face = Math.sign(dx) || -1; }
+    // a villager draws the raiders before the castle does — no hiding place
+    else if (villager && Math.abs(villager.x - r.x) < 300) {
+      const vdx = villager.x - r.x;
+      if (Math.abs(vdx) > 16) { r.x += Math.sign(vdx) * 1.25; r.face = Math.sign(vdx); }
+    }
     else {
-      const target = castleRight() + 10;
-      if (r.x > target) { r.x -= 1.1; r.face = -1; }
-      else if (t % 20 === 0) { castle.hp -= Math.max(1, 3 - Math.floor(castleDef() / 20)); puff(castle.x + castle.w, GROUND - 40, '#ff6b5b', 4); }
+      // approach whichever face of the castle is nearer and bash it
+      const mid = castle.x + castle.w / 2;
+      const target = r.x > mid ? castleRight() + 10 : castle.x - 10;
+      if (Math.abs(r.x - target) > 2) { r.x += Math.sign(target - r.x) * 1.1; r.face = Math.sign(target - r.x); }
+      else if (t % 20 === 0) { castle.hp -= Math.max(1, 3 - Math.floor(castleDef() / 20)); puff(r.x > mid ? castle.x + castle.w : castle.x, GROUND - 40, '#ff6b5b', 4); }
     }
     if (Math.abs(dx) < 24 && Math.abs(p.y - r.y) < 50 && r.atkCd <= 0 && p.inv <= 0) { hurtPlayer(1); r.atkCd = 55; }
     if (r.atkCd > 0) r.atkCd--;
@@ -65,8 +72,14 @@ function spawnRaid() {
   const n = Math.min(level.raids.baseCount + wave, level.raids.maxCount);
   say(`⚠️ RAID! ${n} goblins are attacking the castle!`, 220);
   sfx.raidHorn();
+  // the raid horn also makes the villager rethink their prices
+  if (villager) { villager.trades = rollTrades(); pop(villager.x, villager.y - 74, '🤝 new trades!'); }
   const hp = 3 + Math.floor(wave / 2) + (level.raids.hpBonus || 0);
-  for (let i = 0; i < n; i++) raiders.push({ x: WORLD_W - rand(40, 300) - i * 50, y: GROUND, hp, max: hp, face: -1, hurt: 0, atkCd: 0, raider: true });
+  for (let i = 0; i < n; i++) {
+    const fromLeft = Math.random() < .5; // which side each raider strikes from stays a surprise
+    const d = rand(40, 300) + Math.floor(i / 2) * 50;
+    raiders.push({ x: fromLeft ? d : WORLD_W - d, y: GROUND, hp, max: hp, face: fromLeft ? 1 : -1, hurt: 0, atkCd: 0, raider: true });
+  }
 }
 
 function killEnemy(g) {

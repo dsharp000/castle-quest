@@ -28,7 +28,7 @@ function updateMenu() {
 
 // Click/tap support for the menu: select+buy a row, or tap outside to close.
 cv.addEventListener('click', e => {
-  if (!menuOpen) return;
+  if (!menuOpen || menuMode !== 'build') return;
   const r = cv.getBoundingClientRect(), mx = (e.clientX - r.left) * (W / r.width), my = (e.clientY - r.top) * (H / r.height);
   MENU.forEach((m, i) => { const y = 150 + i * 46; if (my > y - 18 && my < y + 22 && mx > W / 2 - 190 && mx < W / 2 + 190) { menuSel = i; keys.A = true; } });
   if (my < 120 || my > 150 + MENU.length * 46 + 10) menuOpen = false;
@@ -37,7 +37,7 @@ cv.addEventListener('click', e => {
 // Towers auto-fire homing arrows at raiders.
 function updateTowers() {
   if (t % 40 === 0 && castle.towers > 0) {
-    const targets = raiders.filter(r => r.hp > 0 && r.x < castle.x + 600);
+    const targets = raiders.filter(r => r.hp > 0 && Math.abs(r.x - (castle.x + castle.w / 2)) < 600);
     for (let i = 0; i < Math.min(castle.towers, targets.length); i++) {
       arrows.push({ x: castle.x + 120, y: GROUND - 160, tx: targets[i], vx: 0, vy: 0 });
       sfx.arrow();

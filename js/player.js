@@ -26,7 +26,9 @@ function updatePlayer() {
   if (p.inv > 0) p.inv--;
   if (keys.A && p.atkCd <= 0 && !menuOpen) { p.atkT = 12; p.atkCd = 22; swing(); }
   // open build menu near the castle
-  if (keys.E && near(p.x, castle.x + castle.w / 2, 220) && p.g) { menuOpen = true; keys.E = false; }
+  if (keys.E && near(p.x, castle.x + castle.w / 2, 220) && p.g) { menuOpen = true; menuMode = 'build'; keys.E = false; }
+  // trade with the villager (T) while they're alive and nearby
+  if (keys.T && villager && near(p.x, villager.x, 140) && p.g && !menuOpen) { menuOpen = true; menuMode = 'trade'; tradeSel = 0; keys.T = false; }
   // teleport home (U) — one-minute cooldown
   if (p.tpCd > 0) p.tpCd--;
   if (keys.U && p.tpCd <= 0 && !menuOpen) {
@@ -49,6 +51,7 @@ function swing() {
   for (const tr of trees) if (tr.hp > 0 && near(hx, tr.x, reach) && p.y > GROUND - 60) { tr.hp--; sfx.chop(); puff(tr.x, GROUND - 60, '#7ec850'); if (tr.hp <= 0) { tr.respawn = 60 * 20; const n = ri(2, 4); res.wood += n; pop(tr.x, GROUND - 90, `+${n} 🪵`); sfx.pickup(); } return; }
   for (const rk of rocks) if (rk.hp > 0 && near(hx, rk.x, reach) && p.y > GROUND - 60) { rk.hp--; sfx.mine(); puff(rk.x, GROUND - 20, '#aaa'); if (rk.hp <= 0) { rk.respawn = 60 * 25; const n = ri(2, 3); res.stone += n; pop(rk.x, GROUND - 60, `+${n} 🪨`); sfx.pickup(); } return; }
   for (const o of ores) if (o.hp > 0 && near(hx, o.x, reach) && p.y > GROUND - 60) { o.hp--; sfx.mine(); puff(o.x, GROUND - 20, '#c9d6ff'); if (o.hp <= 0) { o.respawn = 60 * 30; const n = ri(1, 3); res.iron += n; pop(o.x, GROUND - 60, `+${n} ⚙️`); sfx.pickup(); } return; }
+  for (const o of golds) if (o.hp > 0 && near(hx, o.x, reach) && p.y > GROUND - 60) { o.hp--; sfx.mine(); puff(o.x, GROUND - 20, '#ffd94d'); if (o.hp <= 0) { o.respawn = 60 * 40; res.gold += 2; pop(o.x, GROUND - 60, '+2 🪙'); sfx.pickup(); } return; }
 }
 
 function hurtPlayer(n) {
@@ -56,11 +59,11 @@ function hurtPlayer(n) {
   if (player.hp <= 0) {
     // death penalty: materials drop where you fell (merging with any earlier
     // bag) and the sword breaks back to damage 1
-    if (res.wood || res.stone || res.iron) {
-      const old = dropBag || { wood: 0, stone: 0, iron: 0 };
-      dropBag = { x: player.x, wood: old.wood + res.wood, stone: old.stone + res.stone, iron: old.iron + res.iron };
+    if (res.wood || res.stone || res.iron || res.gold) {
+      const old = dropBag || { wood: 0, stone: 0, iron: 0, gold: 0 };
+      dropBag = { x: player.x, wood: old.wood + res.wood, stone: old.stone + res.stone, iron: old.iron + res.iron, gold: (old.gold || 0) + res.gold };
     }
-    res = { wood: 0, stone: 0, iron: 0 };
+    res = { wood: 0, stone: 0, iron: 0, gold: 0 };
     player.swordLvl = 1;
     player.hp = player.maxHp; player.x = castle.x + castle.w + 40; player.y = GROUND; player.inv = 120;
     say('💫 Knocked out! Your sword broke and your materials dropped where you fell…', 220);

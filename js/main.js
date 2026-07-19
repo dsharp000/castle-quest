@@ -45,19 +45,22 @@ function loadLevel(i) {
 
 function reset() {
   loadLevel(selLevel);
-  scene = 'game'; t = 0; wave = 0; menuOpen = false; runTime = 0; lastRun = null; enteringName = false; paused = false;
+  scene = 'game'; t = 0; wave = 0; menuOpen = false; menuMode = 'build'; runTime = 0; lastRun = null; enteringName = false; paused = false;
   player = makePlayer(level.playerStart);
-  res = { wood: 0, stone: 0, iron: 0 };
+  res = { wood: 0, stone: 0, iron: 0, gold: 0 };
   castle = { x: level.castle.x, w: level.castle.w, hp: level.castle.hp, maxHp: level.castle.hp, walls: 0, towers: 0, keep: 1 };
   raidTimer = 60 * level.raids.firstDelaySec; respawnWait = 0;
   raiders = []; arrows = []; parts = [];
+  villager = newVillager();
   platforms = level.platforms.map(p => ({ ...p }));
   trees = spawnBand(level.bands.trees, makeTree);
   rocks = spawnBand(level.bands.rocks, makeRock);
   ores = spawnBand(level.bands.ores, makeOre);
+  golds = spawnBand(level.bands.gold, makeGold);
   goblins = spawnBand(level.bands.goblins, newGob);
   troll = newTroll(level.boss);
   chest = { x: worldX(level.chest.x), opened: false };
+  relic = { x: worldX(level.relic.x), taken: false };
   dropBag = null;
 }
 
@@ -68,6 +71,7 @@ function update() {
   updateGoblins();
   updateTroll();
   updateRaiders();
+  updateVillager();
   updateTowers();
   updateWorld();
   // lose / win
@@ -84,7 +88,7 @@ reset(); scene = 'title';
 function loop() {
   t++;
   if (scene === 'game') {
-    if (!paused) { if (menuOpen) updateMenu(); update(); }
+    if (!paused) { if (menuOpen) (menuMode === 'trade' ? updateTradeMenu : updateMenu)(); update(); }
     draw();
     if (paused) drawPause();
   }

@@ -31,7 +31,7 @@ var base = $.NSFileManager.defaultManager.currentDirectoryPath.js;
 // JavaScriptCore drops top-level const/let bindings between eval() calls,
 // so rewrite them to var when loading (test harness only — files are unchanged).
 ['js/config.js', 'levels/level1.js', 'levels/level2.js', 'js/input.js', 'js/audio.js', 'js/world.js',
- 'js/player.js', 'js/enemies.js', 'js/castle.js', 'js/render.js', 'js/main.js']
+ 'js/player.js', 'js/enemies.js', 'js/castle.js', 'js/villager.js', 'js/render.js', 'js/main.js']
   .forEach(function (f) { (1, eval)(read(base + '/' + f).replace(/\b(const|let)\s+/g, 'var ')); });
 
 // ---- helpers ----
@@ -57,6 +57,10 @@ check('sword chops tree', tr.hp < hp0);
 
 raidTimer = 1; frame(2);
 check('raid spawns raiders', wave === 1 && raiders.length > 0);
+// sides are random per raider — sample a bunch of raids to see both used
+for (var s = 0; s < 8; s++) spawnRaid();
+check('raids can strike either side', raiders.some(function (r) { return r.x < castle.x; }) && raiders.some(function (r) { return r.x > castle.x + castle.w; }));
+raiders = raiders.slice(0, 3); // keep just the first raid for the next checks
 
 res.wood = 99; res.stone = 99; res.iron = 99;
 menuOpen = true; menuSel = 0; keys.A = true; frame(1);
@@ -122,6 +126,7 @@ var rd1 = raiders[0], rd2 = raiders[1];
 // space them out: far enough apart that a swing only reaches one, close
 // enough that the first stays within chase range (320) during both hits
 rd1.x = 2000; rd2.x = 2150; raiders.slice(2).forEach(function (r) { r.x = 3800; });
+rd1.face = -1; rd2.face = -1; // spawn side (and facing) is random now — pin it so the back-attack is deterministic
 player.x = 2040; player.y = GROUND; player.face = -1;
 keys.A = true; frame(1); keys.A = false;
 check('back-attacked raider turns on the player', rd1.turned === true);
@@ -169,6 +174,64 @@ keys.R = true; frame(30); keys.R = false;
 check('pause freezes timer, raids and player', runTime === rt0 && raidTimer === rd0 && player.x === px0);
 paused = false; frame(5);
 check('resume unfreezes the game', runTime === rt0 + 5);
+quitToTitle();
+check('Q quits back to the title screen', scene === 'title' && !paused);
+
+reset();
+check('villager spawns outside the castle walls', villager && villager.x > castleRight() && villager.x <= castleRight() + 200);
+goblins = []; player.x = 1500; player.y = GROUND; // keep everyone else out of the way
+// a raider dropped on the villager hunts them down: five hits, ~55 frames
+// apart — the villager can flee but never escape
+raiders.push({ x: villager.x, y: GROUND, hp: 9, max: 9, face: -1, hurt: 0, atkCd: 0, raider: true });
+frame(1);
+check('villager panics when raiders close in', villager.state === 'flee' || villager.state === 'cower');
+frame(200);
+check('fleeing does not save the villager', villager === null || villager.hp <= villager.max - 3);
+frame(150);
+check('raiders kill the villager in five hits', villager === null);
+frame(300);
+check('slain villager stays dead for the rest of the run', villager === null);
+reset();
+check('starting a new quest brings a new villager', villager !== null && villager.hp === 5);
+
+// ---- mid-world castle, left-side raiders, legendary sword ----
+reset();
+check('castle sits mid-world', Math.abs(castle.x + castle.w / 2 - WORLD_W / 2) < 220);
+check('troll waits on the right side', troll.x > WORLD_W * 0.7);
+check('resources spawn on both sides', trees.some(function (tr) { return tr.x < castle.x; }) && trees.some(function (tr) { return tr.x > castle.x + castle.w; }));
+goblins = []; villager = null; // nothing to distract the raider
+var chp0 = castle.hp;
+raiders.push({ x: castle.x - 12, y: GROUND, hp: 9, max: 9, face: 1, hurt: 0, atkCd: 0, raider: true });
+player.x = 700; player.y = GROUND; // well away from the action
+frame(60);
+check('raiders bash the castle from the left too', castle.hp < chp0);
+reset(); goblins = []; raiders = [];
+player.swordLvl = 2; player.x = level.relic.x; player.y = GROUND;
+frame(1);
+check('legendary sword adds +3 on top of current damage', relic.taken && player.swordLvl === 5);
+frame(60);
+check('legendary sword is a one-time pickup', player.swordLvl === 5);
+
+// ---- gold ore + villager trading ----
+reset();
+check('gold ore spawns and is tougher than iron', golds.length > 0 && golds[0].max > ores[0].max);
+goblins = []; raiders = []; trees = []; rocks = []; ores = []; // nothing else in sword reach
+var go = golds[0];
+player.x = go.x - 20; player.y = GROUND; player.face = 1;
+keys.A = true; frame(220); keys.A = false;
+check('gold ore is slow to mine and pays exactly 2', go.hp <= 0 && res.gold === 2);
+check('villager offers three trades', villager.trades.length === 3);
+player.x = villager.x; player.y = GROUND;
+keys.T = true; frame(1); keys.T = false;
+check('T opens the trade menu near the villager', menuOpen && menuMode === 'trade');
+res.gold = 10; tradeSel = 0;
+var cost = villager.trades[0].gold;
+keys.A = true; frame(1); keys.A = false;
+check('buying a trade spends gold', res.gold === 10 - cost);
+menuOpen = false;
+var offers = villager.trades;
+raidTimer = 1; frame(2);
+check('raid start rerolls the trades', villager.trades !== offers && villager.trades.length === 3);
 
 var sfxOk = true;
 try { Object.keys(sfx).forEach(function (k) { sfx[k](); }); toggleMute(); toggleMute(); musicTick(); }
