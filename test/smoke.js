@@ -171,7 +171,7 @@ check('level 1 keeps its own best times', level === LEVELS[0] && bestTimes.lengt
 selLevel = 2; reset();
 check('level 3 loads with its own world', level === LEVELS[2] && WORLD_W === LEVELS[2].worldW && trees.length > 0);
 check('level 3 goblins are tougher', goblins[0].hp === 4 && goblins[0].max === 4);
-check('level 3 boss is the sand snake', troll.name.indexOf('SAND SNAKE') >= 0 && troll.c1 === '#e3d7b4');
+check('level 3 boss is the sand snake', troll.name.indexOf('SAND SNAKE') >= 0 && troll.c1 === '#e3d7b4' && troll.shape === 'snake');
 trees = []; rocks = []; ores = []; goblins = []; raiders = [];
 troll.hp = 1; player.x = troll.x - 30; player.y = GROUND; player.face = 1;
 keys.A = true; frame(30); keys.A = false;

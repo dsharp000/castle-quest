@@ -1,7 +1,7 @@
 // Goblins (roaming + raiders) and the troll boss: AI, raids, drops, drawing.
 
 const newGob = x => { const hp = level.goblinHp || 3; return { x, y: GROUND, vx: 0, hp, max: hp, face: -1, home: x, state: 'patrol', dir: Math.random() < .5 ? 1 : -1, hurt: 0, atkCd: 0 }; };
-const newTroll = spec => ({ x: worldX(spec.x), y: GROUND, hp: spec.hp, max: spec.hp, dmg: spec.dmg || 2, c1: spec.c1, c2: spec.c2, name: spec.name, face: -1, atkT: 0, alive: true, hurt: 0 });
+const newTroll = spec => ({ x: worldX(spec.x), y: GROUND, hp: spec.hp, max: spec.hp, dmg: spec.dmg || 2, c1: spec.c1, c2: spec.c2, shape: spec.shape, name: spec.name, face: -1, atkT: 0, alive: true, hurt: 0 });
 
 function updateGoblins() {
   const p = player;
@@ -110,11 +110,27 @@ function drawTroll() {
   const tr = troll; ctx.save(); ctx.translate(tr.x, tr.y); ctx.scale(tr.face, 1);
   if (tr.hurt > 0) ctx.globalAlpha = 0.6;
   const bob = Math.sin(t / 7) * 3;
-  ctx.fillStyle = tr.c1 || '#5a6b4a'; ctx.fillRect(-24, -70 + bob, 48, 58);
-  ctx.fillStyle = tr.c2 || '#6b7c5a'; ctx.fillRect(-18, -95 + bob, 36, 28);
-  ctx.fillStyle = '#e5484d'; ctx.fillRect(4, -88 + bob, 7, 7);
-  ctx.fillStyle = '#3a2a1a'; ctx.fillRect(-22, -12, 14, 12); ctx.fillRect(8, -12, 14, 12);
-  ctx.fillStyle = '#7a5230'; ctx.fillRect(22, -80 + bob, 10, 50);
+  if (tr.shape === 'snake') {
+    // tapering segments slither behind a raised neck; head faces the player
+    for (let i = 11; i >= 0; i--) {
+      const raise = Math.max(0, 5 - i), r = 15 - i * 0.6;
+      const sy = -14 - raise * 13 + (raise ? bob * raise / 5 : Math.sin(t / 8 + i * 0.9) * 4);
+      ctx.fillStyle = tr.c1 || '#e3d7b4'; ctx.beginPath(); ctx.arc(10 - i * 8.5, sy, r, 0, 2 * Math.PI); ctx.fill();
+      ctx.fillStyle = tr.c2 || '#b9915f'; ctx.beginPath(); ctx.arc(10 - i * 8.5, sy - r * 0.55, r * 0.35, 0, 2 * Math.PI); ctx.fill();
+    }
+    ctx.fillStyle = tr.c2 || '#b9915f'; ctx.beginPath(); ctx.ellipse(22, -82 + bob, 20, 12, 0, 0, 2 * Math.PI); ctx.fill();
+    ctx.fillStyle = '#e5484d'; ctx.fillRect(29, -88 + bob, 6, 6);
+    if (Math.floor(t / 16) % 2) {
+      ctx.strokeStyle = '#e5484d'; ctx.lineWidth = 2; ctx.beginPath();
+      ctx.moveTo(42, -82 + bob); ctx.lineTo(55, -76 + bob); ctx.moveTo(42, -82 + bob); ctx.lineTo(55, -88 + bob); ctx.stroke();
+    }
+  } else {
+    ctx.fillStyle = tr.c1 || '#5a6b4a'; ctx.fillRect(-24, -70 + bob, 48, 58);
+    ctx.fillStyle = tr.c2 || '#6b7c5a'; ctx.fillRect(-18, -95 + bob, 36, 28);
+    ctx.fillStyle = '#e5484d'; ctx.fillRect(4, -88 + bob, 7, 7);
+    ctx.fillStyle = '#3a2a1a'; ctx.fillRect(-22, -12, 14, 12); ctx.fillRect(8, -12, 14, 12);
+    ctx.fillStyle = '#7a5230'; ctx.fillRect(22, -80 + bob, 10, 50);
+  }
   ctx.globalAlpha = 1; ctx.restore();
   bar(tr.x, tr.y - 108, tr.hp / tr.max);
   ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = '#ffc94d'; ctx.textAlign = 'center'; ctx.fillText(tr.name, tr.x, tr.y - 114); ctx.textAlign = 'left';

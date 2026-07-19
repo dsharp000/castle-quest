@@ -31,7 +31,7 @@ LEVELS.push({
   goblinMinAlive: 10,          // sheet: "Lots"
   goblinHp: 4,                 // sheet: toughness 3 of 5
   goblinRespawnZone: [{ from: 650, to: 2050 }, { from: 2650, to: -500 }],
-  boss: { x: -260, hp: 22, dmg: 2, name: '🐍 GIANT SAND SNAKE', c1: '#e3d7b4', c2: '#b9915f' },
+  boss: { x: -260, hp: 22, dmg: 2, name: '🐍 GIANT SAND SNAKE', shape: 'snake', c1: '#e3d7b4', c2: '#b9915f' },
   chest: { x: -140, loot: { wood: 6, stone: 8, iron: 10, gold: 4 } },
   relic: { x: 120, bonus: 3 },
   raids: { firstDelaySec: 45, extraDelayPerWaveSec: 5, baseCount: 2, maxCount: 8 },
