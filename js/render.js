@@ -86,7 +86,7 @@ function drawPause() {
 
 // Level-select card geometry — shared with the tap handler in input.js.
 function titleCard(i) {
-  const w = 330, gap = 20, total = LEVELS.length * (w + gap) - gap;
+  const gap = 20, w = Math.min(330, (W - 40 - gap * (LEVELS.length - 1)) / LEVELS.length), total = LEVELS.length * (w + gap) - gap;
   return { x: W / 2 - total / 2 + i * (w + gap), y: 296, w, h: 92 };
 }
 

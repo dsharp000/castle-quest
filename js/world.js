@@ -48,7 +48,8 @@ function updateWorld() {
     chest.opened = true;
     const loot = level.chest.loot;
     for (const k in loot) res[k] += loot[k];
-    say(`🎁 Treasure! +${loot.wood} wood, +${loot.stone} stone, +${loot.iron} iron`, 220);
+    const lootIcon = { wood: '🪵', stone: '🪨', iron: '⚙️', gold: '🪙' };
+    say('🎁 Treasure! ' + Object.keys(loot).map(k => `+${loot[k]} ${lootIcon[k] || k}`).join('  '), 220);
     sfx.chest();
   }
 }

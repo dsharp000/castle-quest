@@ -30,7 +30,7 @@ var read = function (p) { return $.NSString.stringWithContentsOfFileEncodingErro
 var base = $.NSFileManager.defaultManager.currentDirectoryPath.js;
 // JavaScriptCore drops top-level const/let bindings between eval() calls,
 // so rewrite them to var when loading (test harness only — files are unchanged).
-['js/config.js', 'levels/level1.js', 'levels/level2.js', 'js/input.js', 'js/audio.js', 'js/world.js',
+['js/config.js', 'levels/level1.js', 'levels/level2.js', 'levels/level3.js', 'js/input.js', 'js/audio.js', 'js/world.js',
  'js/player.js', 'js/enemies.js', 'js/castle.js', 'js/villager.js', 'js/render.js', 'js/main.js']
   .forEach(function (f) { (1, eval)(read(base + '/' + f).replace(/\b(const|let)\s+/g, 'var ')); });
 
@@ -166,6 +166,26 @@ check('time saved to level 2 table only', bestTimes.length === 1 && allTimes[1] 
 enteringName = false;
 selLevel = 0; reset();
 check('level 1 keeps its own best times', level === LEVELS[0] && bestTimes.length === 1 && bestTimes[0].name === 'Sir Dave');
+
+// ---- level 3: Deserted Desert — sand snake boss, gold in the chest ----
+selLevel = 2; reset();
+check('level 3 loads with its own world', level === LEVELS[2] && WORLD_W === LEVELS[2].worldW && trees.length > 0);
+check('level 3 goblins are tougher', goblins[0].hp === 4 && goblins[0].max === 4);
+check('level 3 boss is the sand snake', troll.name.indexOf('SAND SNAKE') >= 0 && troll.c1 === '#e3d7b4');
+trees = []; rocks = []; ores = []; goblins = []; raiders = [];
+troll.hp = 1; player.x = troll.x - 30; player.y = GROUND; player.face = 1;
+keys.A = true; frame(30); keys.A = false;
+check('level 3 boss can be defeated', !troll.alive);
+var gold0 = res.gold;
+player.x = chest.x; frame(1);
+check('level 3 chest pays out gold too', chest.opened && res.gold === gold0 + 4 && res.iron >= 10);
+castle.keep = 4; castle.walls = 3; castle.towers = 3; frame(1);
+check('level 2 goal is not enough on level 3', scene === 'game');
+castle.keep = 5; castle.walls = 5; castle.towers = 4; frame(1);
+check('level 3 win uses its own goal', scene === 'win');
+enteringName = false;
+var lastCard = titleCard(LEVELS.length - 1);
+check('title cards all fit on screen', titleCard(0).x >= 0 && lastCard.x + lastCard.w <= W);
 
 reset();
 paused = true;
