@@ -21,7 +21,7 @@ plain `<script>` tags share globals (NOT ES modules), so double-clicking
 | `js/castle.js` | build/craft `MENU`, tower auto-fire + arrows, castle & menu drawing |
 | `js/villager.js` | friendly villager NPC: wander/flee/cower AI, raider kills (permanent for the run — next villager comes with `reset()`), gift to nearby player, gold-for-goods trade menu (`rollTrades`/`updateTradeMenu`/`drawTradeMenu`, rerolled by `spawnRaid`), drawing (raider hunt-the-villager targeting itself lives in `enemies.js`) |
 | `js/render.js` | background/parallax, HUD, `bar()` health bars, title/end screens, `draw()` orchestration |
-| `js/main.js` | `reset()`, `update()` call order, game loop, scenes (`title`/`game`/`over`/`win`), per-level best-times tables (`allTimes` in localStorage `cq-times-v2`; old `cq-times` migrates to level 1) |
+| `js/main.js` | `reset()`, `update()` call order, game loop, scenes (`title`/`game`/`over`/`win`), per-level best-times tables (`allTimes` in localStorage `cq-times-v2`; old `cq-times` migrates to level 1), and the transferred meat inventory (`carriedMeat` in localStorage `cq-meat` — seeds `res.meat` each level, `update()` banks changes back) |
 
 ## Conventions
 

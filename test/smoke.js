@@ -260,6 +260,23 @@ check('death drops your meat into the bag', res.meat === 0 && dropBag && dropBag
 player.x = dropBag.x; frame(1);
 check('reclaiming the bag restores your meat', res.meat === meat0 && dropBag === null);
 
+// ---- meat is a TRANSFERRED inventory: it carries between levels ----
+carriedMeat = 0; // clean slate for the transfer checks
+selLevel = 2; reset();
+killEnemy(goblins.find(function (g) { return g.kind === 'snake'; }));
+var carried = res.meat; // 1 or 2
+frame(1); // update() banks res.meat into carriedMeat
+check('meat banks into the transfer inventory', carried >= 1 && carriedMeat === carried);
+selLevel = 0; reset(); // switch to a different level (Forest — no snakes)
+check('meat carries over into the next level', res.meat === carried);
+check('wood/stone/iron/gold do NOT transfer', res.wood === 0 && res.stone === 0 && res.iron === 0 && res.gold === 0);
+// dying still spends it: it drops on the level you fell, so leaving loses it
+player.x = 700; player.y = GROUND; hurtPlayer(player.hp); frame(1);
+check('a death empties the transfer inventory', carriedMeat === 0);
+selLevel = 1; reset();
+check('the next level then starts with no meat', res.meat === 0);
+carriedMeat = 0; persistMeat(); // leave a clean slate for the remaining tests
+
 reset();
 paused = true;
 var rt0 = runTime, rd0 = raidTimer, px0 = player.x;

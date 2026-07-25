@@ -12,6 +12,19 @@ var allTimes = (() => {
     return v1 ? [v1] : [];
   } catch (e) { return []; }
 })();
+// Raw meat is a TRANSFERRED inventory: unlike wood/stone/iron/gold (which are
+// level-local and reset each run), meat carries from level to level and is
+// saved to localStorage, so it's kept for good — only a death spends it (it
+// drops into the reclaimable bag with everything else). `res.meat` mirrors this
+// stash during play; update() syncs any change back here.
+var carriedMeat = (() => {
+  try { return typeof localStorage === 'undefined' ? 0 : (parseInt(localStorage.getItem('cq-meat'), 10) || 0); }
+  catch (e) { return 0; }
+})();
+function persistMeat() {
+  if (typeof localStorage !== 'undefined') localStorage.setItem('cq-meat', String(carriedMeat));
+}
+
 var bestTimes = []; // the CURRENT level's table — swapped by loadLevel()
 const levelBest = i => (allTimes[i] || [])[0]; // for the title-screen cards
 const lastName = () => (typeof localStorage !== 'undefined' && localStorage.getItem('cq-name')) || '';
@@ -48,7 +61,7 @@ function reset() {
   scene = 'game'; t = 0; wave = 0; menuOpen = false; menuMode = 'build'; runTime = 0; lastRun = null; enteringName = false; paused = false;
   countdown = 60 * 3; // "Get ready!" — nothing moves or spawns until it hits 0
   player = makePlayer(level.playerStart);
-  res = { wood: 0, stone: 0, iron: 0, gold: 0, meat: 0 };
+  res = { wood: 0, stone: 0, iron: 0, gold: 0, meat: carriedMeat }; // meat carries over
   castle = { x: level.castle.x, w: level.castle.w, hp: level.castle.hp, maxHp: level.castle.hp, walls: 0, towers: 0, keep: 1 };
   raidTimer = 60 * level.raids.firstDelaySec; respawnWait = 0;
   raiders = []; arrows = []; parts = [];
@@ -92,6 +105,8 @@ function update() {
     lastRun = { time: runTime, rank: saveTime(runTime) };
     if (lastRun.rank >= 0) { enteringName = true; nameBuf = lastName(); }
   }
+  // bank any change to your meat into the transferred inventory
+  if (res.meat !== carriedMeat) { carriedMeat = res.meat; persistMeat(); }
 }
 
 reset(); scene = 'title';
