@@ -43,6 +43,19 @@ var check = function (name, cond) {
 };
 
 // ---- the tests ----
+// Levels open with a 3-second "GET READY" freeze: nothing moves or spawns.
+scene = 'game';
+check('level opens with a ~3s countdown, no goblins yet', countdown === 180 && goblins.length === 0);
+var cd0 = player.x;
+keys.R = true; frame(60); keys.R = false;
+check('player and run-clock are frozen during the countdown', player.x === cd0 && runTime === 0 && goblins.length === 0);
+frame(120);
+check('countdown ends → enemies spawn and play begins', countdown === 0 && goblins.length > 0);
+// From here on, skip the countdown after each reset so the rest of the
+// suite exercises live play (the freeze itself is covered above).
+var realReset = reset;
+reset = function () { realReset(); countdown = 0; goblins = spawnBand(level.bands.goblins, newGob); };
+
 check('world spawned', trees.length > 0 && rocks.length > 0 && ores.length > 0 && goblins.length > 0);
 
 scene = 'game';

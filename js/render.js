@@ -74,6 +74,19 @@ function drawHUD() {
   ctx.textAlign = 'right'; ctx.fillText(muted ? '🔇 M' : '🔊 M', W - 16, H - 10); ctx.textAlign = 'left';
 }
 
+function drawCountdown() {
+  ctx.fillStyle = '#14101f99'; ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'center';
+  const n = Math.ceil(countdown / 60);
+  const pop = 1 + 0.25 * (1 - (countdown % 60) / 60); // grows a touch each second
+  ctx.save(); ctx.translate(W / 2, H / 2 - 10); ctx.scale(pop, pop);
+  ctx.font = 'bold 120px sans-serif'; ctx.fillStyle = '#ffc94d'; ctx.fillText(n, 0, 40);
+  ctx.restore();
+  ctx.font = 'bold 24px sans-serif'; ctx.fillStyle = '#fff'; ctx.fillText('GET READY!', W / 2, H / 2 - 90);
+  ctx.font = '14px sans-serif'; ctx.fillStyle = '#f3e5c3'; ctx.fillText('gather up — enemies arrive when the count hits zero', W / 2, H / 2 + 96);
+  ctx.textAlign = 'left';
+}
+
 function drawPause() {
   ctx.fillStyle = '#14101fcc'; ctx.fillRect(0, 0, W, H);
   ctx.textAlign = 'center';

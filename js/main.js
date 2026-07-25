@@ -46,6 +46,7 @@ function loadLevel(i) {
 function reset() {
   loadLevel(selLevel);
   scene = 'game'; t = 0; wave = 0; menuOpen = false; menuMode = 'build'; runTime = 0; lastRun = null; enteringName = false; paused = false;
+  countdown = 60 * 3; // "Get ready!" — nothing moves or spawns until it hits 0
   player = makePlayer(level.playerStart);
   res = { wood: 0, stone: 0, iron: 0, gold: 0 };
   castle = { x: level.castle.x, w: level.castle.w, hp: level.castle.hp, maxHp: level.castle.hp, walls: 0, towers: 0, keep: 1 };
@@ -57,7 +58,7 @@ function reset() {
   rocks = spawnBand(level.bands.rocks, makeRock);
   ores = spawnBand(level.bands.ores, makeOre);
   golds = spawnBand(level.bands.gold, makeGold);
-  goblins = spawnBand(level.bands.goblins, newGob);
+  goblins = []; // roaming goblins spawn when the countdown ends
   troll = newTroll(level.boss);
   chest = { x: worldX(level.chest.x), opened: false };
   relic = { x: worldX(level.relic.x), taken: false };
@@ -65,6 +66,11 @@ function reset() {
 }
 
 function update() {
+  if (countdown > 0) {
+    // "Get ready" freeze: no movement, spawns, raids, or run-clock yet
+    if (--countdown === 0) { goblins = spawnBand(level.bands.goblins, newGob); sfx.win(); }
+    return;
+  }
   runTime++;
   if (msgT > 0) msgT--;
   updatePlayer();
@@ -90,6 +96,7 @@ function loop() {
   if (scene === 'game') {
     if (!paused) { if (menuOpen) (menuMode === 'trade' ? updateTradeMenu : updateMenu)(); update(); }
     draw();
+    if (countdown > 0) drawCountdown();
     if (paused) drawPause();
   }
   else if (scene === 'title') drawTitle();
