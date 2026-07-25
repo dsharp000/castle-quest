@@ -68,7 +68,11 @@ function reset() {
 function update() {
   if (countdown > 0) {
     // "Get ready" freeze: no movement, spawns, raids, or run-clock yet
-    if (--countdown === 0) { goblins = spawnBand(level.bands.goblins, newGob); sfx.win(); }
+    if (--countdown === 0) {
+      goblins = spawnBand(level.bands.goblins, newGob);
+      if (level.bands.snakes) goblins = goblins.concat(spawnBand(level.bands.snakes, newSnake));
+      sfx.win();
+    }
     return;
   }
   runTime++;

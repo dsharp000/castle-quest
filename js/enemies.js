@@ -1,6 +1,9 @@
 // Goblins (roaming + raiders) and the troll boss: AI, raids, drops, drawing.
 
 const newGob = x => { const hp = level.goblinHp || 3; return { x, y: GROUND, vx: 0, hp, max: hp, face: -1, home: x, state: 'patrol', dir: Math.random() < .5 ? 1 : -1, hurt: 0, atkCd: 0 }; };
+// A fast desert sand-viper. Roams like a goblin but sprints when it spots you,
+// and every 4th bite is venomous — 2 hearts instead of 1. `atkN` counts bites.
+const newSnake = x => { const hp = level.snakeHp || 3; return { x, y: GROUND, vx: 0, hp, max: hp, face: -1, home: x, state: 'patrol', dir: Math.random() < .5 ? 1 : -1, hurt: 0, atkCd: 0, kind: 'snake', atkN: 0 }; };
 const newTroll = spec => ({ x: worldX(spec.x), y: GROUND, hp: spec.hp, max: spec.hp, dmg: spec.dmg || 2, c1: spec.c1, c2: spec.c2, shape: spec.shape, name: spec.name, face: -1, atkT: 0, alive: true, hurt: 0 });
 
 function updateGoblins() {
@@ -9,13 +12,21 @@ function updateGoblins() {
     if (g.hp <= 0) continue;
     if (g.hurt > 0) g.hurt--;
     if (g.atkCd > 0) g.atkCd--;
+    const snake = g.kind === 'snake';
     const dx = p.x - g.x;
-    if (Math.abs(dx) < 170 && Math.abs(p.y - g.y) < 80) g.state = 'chase';
-    else if (Math.abs(dx) > 320) g.state = 'patrol';
-    if (g.state === 'chase') { g.vx = Math.sign(dx) * 1.3; g.face = Math.sign(dx); }
-    else { g.vx = g.dir * 0.6; g.face = g.dir; if (Math.abs(g.x - g.home) > 120) g.dir *= -1; }
+    if (Math.abs(dx) < (snake ? 240 : 170) && Math.abs(p.y - g.y) < 80) g.state = 'chase';
+    else if (Math.abs(dx) > (snake ? 420 : 320)) g.state = 'patrol';
+    if (g.state === 'chase') { g.vx = Math.sign(dx) * (snake ? 2.5 : 1.3); g.face = Math.sign(dx); }
+    else { g.vx = g.dir * (snake ? 1.1 : 0.6); g.face = g.dir; if (Math.abs(g.x - g.home) > 120) g.dir *= -1; }
     g.x += g.vx;
-    if (Math.abs(dx) < 26 && Math.abs(p.y - g.y) < 50 && g.atkCd <= 0 && p.inv <= 0) { hurtPlayer(1); g.atkCd = 50; }
+    if (Math.abs(dx) < 26 && Math.abs(p.y - g.y) < 50 && g.atkCd <= 0 && p.inv <= 0) {
+      if (snake) {
+        // every 4th strike is a venomous bite worth 2 hearts; the rest do 1
+        const venom = (++g.atkN) % 4 === 0;
+        hurtPlayer(venom ? 2 : 1); g.atkCd = 34;
+        if (venom) { pop(g.x, g.y - 46, '🐍 VENOM! −2'); sfx.deny(); }
+      } else { hurtPlayer(1); g.atkCd = 50; }
+    }
   }
   // keep the forest populated — but cleared areas stay cleared until the
   // player returns near the castle wall (120px) or a minute passes (hidden timer)
@@ -106,6 +117,27 @@ function drawGob(g) {
   if (g.raider) { ctx.font = '10px sans-serif'; ctx.fillStyle = '#ff9a9a'; ctx.textAlign = 'center'; ctx.fillText('raider', g.x, g.y - 60); ctx.textAlign = 'left'; }
 }
 
+function drawSnakeMob(g) {
+  ctx.save(); ctx.translate(g.x, g.y); ctx.scale(g.face || 1, 1);
+  if (g.hurt > 0) ctx.globalAlpha = 0.6;
+  // a low, ground-hugging body: a trail of shrinking banded coils behind a head.
+  // Olive-green so it stands out against the desert sand (not camouflaged).
+  for (let i = 7; i >= 0; i--) {
+    const r = 8 - i * 0.7, sx = -4 - i * 6.5, sy = -6 - Math.sin(t / 4 + i * 0.8 + g.x) * 3;
+    ctx.fillStyle = i % 2 ? '#6f9a3e' : '#3f5a1c'; // green scales with darker bands
+    ctx.beginPath(); ctx.arc(sx, sy, r, 0, 2 * Math.PI); ctx.fill();
+  }
+  const wig = Math.sin(t / 4 + g.x) * 2;
+  ctx.fillStyle = '#6f9a3e'; ctx.beginPath(); ctx.ellipse(9, -12 + wig, 11, 7, 0, 0, 2 * Math.PI); ctx.fill();
+  ctx.fillStyle = '#ffd23f'; ctx.fillRect(13, -15 + wig, 3, 3); // slit eye
+  if (Math.abs(player.x - g.x) < 70 && Math.floor(t / 8) % 2) { // tongue flick when you're near
+    ctx.strokeStyle = '#e5484d'; ctx.lineWidth = 1.5; ctx.beginPath();
+    ctx.moveTo(19, -12 + wig); ctx.lineTo(27, -9 + wig); ctx.moveTo(19, -12 + wig); ctx.lineTo(27, -15 + wig); ctx.stroke();
+  }
+  ctx.globalAlpha = 1; ctx.restore();
+  if (g.hp < g.max) bar(g.x, g.y - 32, g.hp / g.max);
+}
+
 function drawTroll() {
   const tr = troll; ctx.save(); ctx.translate(tr.x, tr.y); ctx.scale(tr.face, 1);
   if (tr.hurt > 0) ctx.globalAlpha = 0.6;
@@ -137,6 +169,6 @@ function drawTroll() {
 }
 
 function drawEnemies() {
-  for (const gb of [...goblins, ...raiders]) if (gb.hp > 0) drawGob(gb);
+  for (const gb of [...goblins, ...raiders]) if (gb.hp > 0) (gb.kind === 'snake' ? drawSnakeMob : drawGob)(gb);
   if (troll.alive) drawTroll();
 }

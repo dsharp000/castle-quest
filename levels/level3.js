@@ -27,9 +27,11 @@ LEVELS.push({
     ores:    [{ from: 400, to: 1100, gap: [480, 720] }, { from: 3300, to: -300, gap: [480, 720] }],
     gold:    [{ from: 250, to: 750,  gap: [750, 1050] }, { from: 3700, to: -600, gap: [750, 1050] }],
     goblins: [{ from: 550, to: 2150, gap: [300, 440] }, { from: 2700, to: -400, gap: [300, 440] }],
+    snakes:  [{ from: 800, to: 1900, gap: [520, 820] }, { from: 3000, to: -700, gap: [520, 820] }], // fast desert sand-vipers
   },
   goblinMinAlive: 10,          // sheet: "Lots"
   goblinHp: 4,                 // sheet: toughness 3 of 5
+  snakeHp: 3,                  // fast but fragile — glass cannons
   goblinRespawnZone: [{ from: 650, to: 2050 }, { from: 2650, to: -500 }],
   boss: { x: -260, hp: 22, dmg: 2, name: '🐍 GIANT SAND SNAKE', shape: 'snake', c1: '#e3d7b4', c2: '#b9915f' },
   chest: { x: -140, loot: { wood: 6, stone: 8, iron: 10, gold: 4 } },

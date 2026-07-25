@@ -54,7 +54,11 @@ check('countdown ends → enemies spawn and play begins', countdown === 0 && gob
 // From here on, skip the countdown after each reset so the rest of the
 // suite exercises live play (the freeze itself is covered above).
 var realReset = reset;
-reset = function () { realReset(); countdown = 0; goblins = spawnBand(level.bands.goblins, newGob); };
+reset = function () {
+  realReset(); countdown = 0;
+  goblins = spawnBand(level.bands.goblins, newGob);
+  if (level.bands.snakes) goblins = goblins.concat(spawnBand(level.bands.snakes, newSnake));
+};
 
 check('world spawned', trees.length > 0 && rocks.length > 0 && ores.length > 0 && goblins.length > 0);
 
@@ -222,6 +226,26 @@ check('level 3 win uses its own goal', scene === 'win');
 enteringName = false;
 var lastCard = titleCard(LEVELS.length - 1);
 check('title cards all fit on screen', titleCard(0).x >= 0 && lastCard.x + lastCard.w <= W);
+
+// ---- level 3: fast sand-viper snakes with a venomous every-4th bite ----
+selLevel = 2; reset();
+var mob = goblins.find(function (g) { return g.kind === 'snake'; });
+var gmob = goblins.find(function (g) { return !g.kind; });
+check('level 3 spawns sand-viper snakes (3 hp)', !!mob && mob.max === 3);
+// a chasing snake outruns a chasing goblin
+player.x = 1000; player.y = GROUND; player.inv = 999; // stay in range, take no damage
+mob.x = gmob.x = 1120; mob.y = gmob.y = GROUND; mob.state = gmob.state = 'chase';
+var sx0 = mob.x, gx0 = gmob.x; updateGoblins();
+check('snakes move faster than goblins', Math.abs(mob.x - sx0) > Math.abs(gmob.x - gx0) + 0.5);
+// bite pattern: 1, 1, 1, then a venomous 2
+selLevel = 2; reset();
+var sk = goblins.find(function (g) { return g.kind === 'snake'; });
+goblins = [sk]; // isolate one snake so only it can hit the knight
+player.maxHp = 20; player.hp = 20; player.x = 1000; player.y = GROUND;
+sk.x = 1006; sk.y = GROUND; sk.atkN = 0;
+var dmg = [];
+for (var b = 0; b < 4; b++) { var hp0 = player.hp; sk.atkCd = 0; player.inv = 0; updateGoblins(); dmg.push(hp0 - player.hp); }
+check('every 4th snake bite deals 2 hearts (1,1,1,2)', dmg.join(',') === '1,1,1,2');
 
 reset();
 paused = true;
