@@ -59,7 +59,7 @@ function drawHUD() {
   ctx.textAlign = 'center'; ctx.fillStyle = '#ffe9a8'; ctx.font = 'bold 16px sans-serif';
   ctx.fillText(`⏱ ${fmtTime(runTime)}`, W / 2, 30); ctx.textAlign = 'left';
   ctx.fillStyle = '#ffe9a8'; ctx.font = 'bold 14px sans-serif';
-  ctx.fillText(`🪵 ${res.wood}   🪨 ${res.stone}   ⚙️ ${res.iron}   🪙 ${res.gold}   ⚔️ dmg ${swordDmg()}   🌀 ${player.tpCd > 0 ? Math.ceil(player.tpCd / 60) + 's' : 'ready (U)'}`, 16, 48);
+  ctx.fillText(`🪵 ${res.wood}   🪨 ${res.stone}   ⚙️ ${res.iron}   🪙 ${res.gold}${res.meat ? `   🥩 ${res.meat}` : ''}   ⚔️ dmg ${swordDmg()}   🌀 ${player.tpCd > 0 ? Math.ceil(player.tpCd / 60) + 's' : 'ready (U)'}`, 16, 48);
   // castle hp + raid countdown
   ctx.textAlign = 'right';
   ctx.fillText(`🏰 ${Math.max(0, Math.ceil(castle.hp))}/${castle.maxHp}`, W - 16, 30);

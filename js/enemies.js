@@ -97,7 +97,11 @@ function killEnemy(g) {
   sfx.kill();
   const iron = ri(1, 2), wood = ri(0, 2);
   res.iron += iron; if (wood) res.wood += wood;
-  pop(g.x, g.y - 50, `+${iron} ⚙️${wood ? ` +${wood} 🪵` : ''}`);
+  // sand-vipers also drop raw meat — a keeper resource for later (kept for the
+  // whole run, only lost if you die; it rides in `res` like wood/stone/iron/gold)
+  let extra = '';
+  if (g.kind === 'snake') { const meat = ri(1, 2); res.meat += meat; extra = ` +${meat} 🥩`; }
+  pop(g.x, g.y - 50, `+${iron} ⚙️${wood ? ` +${wood} 🪵` : ''}${extra}`);
   puff(g.x, g.y - 25, '#ffd98a', 10);
 }
 

@@ -30,8 +30,8 @@ function updateWorld() {
   parts = parts.filter(pt => pt.life > 0);
   // reclaim materials dropped on death
   if (dropBag && near(player.x, dropBag.x, 40)) {
-    res.wood += dropBag.wood; res.stone += dropBag.stone; res.iron += dropBag.iron; res.gold += dropBag.gold || 0;
-    pop(dropBag.x, GROUND - 80, `+${dropBag.wood} 🪵 +${dropBag.stone} 🪨 +${dropBag.iron} ⚙️${dropBag.gold ? ` +${dropBag.gold} 🪙` : ''}`);
+    res.wood += dropBag.wood; res.stone += dropBag.stone; res.iron += dropBag.iron; res.gold += dropBag.gold || 0; res.meat += dropBag.meat || 0;
+    pop(dropBag.x, GROUND - 80, `+${dropBag.wood} 🪵 +${dropBag.stone} 🪨 +${dropBag.iron} ⚙️${dropBag.gold ? ` +${dropBag.gold} 🪙` : ''}${dropBag.meat ? ` +${dropBag.meat} 🥩` : ''}`);
     say('🎒 You recovered your dropped materials!', 160);
     sfx.pickup();
     dropBag = null;

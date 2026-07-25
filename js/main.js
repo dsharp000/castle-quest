@@ -48,7 +48,7 @@ function reset() {
   scene = 'game'; t = 0; wave = 0; menuOpen = false; menuMode = 'build'; runTime = 0; lastRun = null; enteringName = false; paused = false;
   countdown = 60 * 3; // "Get ready!" — nothing moves or spawns until it hits 0
   player = makePlayer(level.playerStart);
-  res = { wood: 0, stone: 0, iron: 0, gold: 0 };
+  res = { wood: 0, stone: 0, iron: 0, gold: 0, meat: 0 };
   castle = { x: level.castle.x, w: level.castle.w, hp: level.castle.hp, maxHp: level.castle.hp, walls: 0, towers: 0, keep: 1 };
   raidTimer = 60 * level.raids.firstDelaySec; respawnWait = 0;
   raiders = []; arrows = []; parts = [];

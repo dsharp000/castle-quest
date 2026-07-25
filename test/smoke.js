@@ -246,6 +246,19 @@ sk.x = 1006; sk.y = GROUND; sk.atkN = 0;
 var dmg = [];
 for (var b = 0; b < 4; b++) { var hp0 = player.hp; sk.atkCd = 0; player.inv = 0; updateGoblins(); dmg.push(hp0 - player.hp); }
 check('every 4th snake bite deals 2 hearts (1,1,1,2)', dmg.join(',') === '1,1,1,2');
+// snakes drop raw meat (a keeper resource); goblins do not
+selLevel = 2; reset();
+res.meat = 0;
+killEnemy(goblins.find(function (g) { return g.kind === 'snake'; }));
+check('killing a snake drops raw meat', res.meat >= 1);
+var meat0 = res.meat, ironBefore = res.iron;
+killEnemy(goblins.find(function (g) { return !g.kind; }));
+check('killing a goblin drops no meat', res.meat === meat0 && res.iron > ironBefore);
+// meat is kept for the run but dropped (and reclaimable) on death
+player.x = 1500; player.y = GROUND; hurtPlayer(player.hp);
+check('death drops your meat into the bag', res.meat === 0 && dropBag && dropBag.meat === meat0);
+player.x = dropBag.x; frame(1);
+check('reclaiming the bag restores your meat', res.meat === meat0 && dropBag === null);
 
 reset();
 paused = true;
