@@ -76,9 +76,32 @@ check('raids can strike either side', raiders.some(function (r) { return r.x < c
 raiders = raiders.slice(0, 3); // keep just the first raid for the next checks
 
 res.wood = 99; res.stone = 99; res.iron = 99;
-menuOpen = true; menuSel = 0; keys.A = true; frame(1);
+player.x = castle.x + castle.w / 2; player.y = GROUND; // stand at the castle to build
+menuOpen = true; menuMode = 'build'; menuSel = 0; keys.A = true; frame(1);
 menuOpen = false; keys.A = false;
 check('menu purchase builds wall', castle.walls === 1);
+
+// ---- Look (L): peek at builds/trades from afar, but can't buy until close ----
+reset();
+res.wood = 99; res.stone = 99; res.iron = 99; res.gold = 99;
+player.x = 40; player.y = GROUND; // far from both the castle and the trader
+keys.LK = true; frame(1); keys.LK = false;
+check('Look opens the build menu from far away', menuOpen && menuMode === 'build');
+var walls0 = castle.walls;
+menuSel = 0; keys.A = true; frame(1); keys.A = false;
+check('cannot build while looking from afar', castle.walls === walls0 && menuOpen);
+keys.LK = true; frame(1); keys.LK = false;
+check('Look toggles over to the trade menu', menuMode === 'trade' && menuOpen);
+var gold0 = res.gold;
+keys.A = true; frame(1); keys.A = false;
+check('cannot trade while looking from afar', res.gold === gold0);
+keys.LK = true; frame(1); keys.LK = false;
+check('Look again closes the menu', !menuOpen);
+player.x = castle.x + castle.w / 2; player.y = GROUND; // now stand at the castle
+keys.LK = true; frame(1); keys.LK = false;
+menuSel = 0; keys.A = true; frame(1); keys.A = false;
+check('can build once standing at the castle', castle.walls === walls0 + 1);
+menuOpen = false; keys.A = false;
 
 castle.towers = 1;
 raiders.forEach(function (r) { r.x = castle.x + 500; });

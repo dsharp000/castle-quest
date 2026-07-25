@@ -1,8 +1,8 @@
 // Keyboard + touch input. Everything reads/writes flags on `keys`:
 // L/R = move, J = jump / menu up, A = attack / menu buy, E = build menu,
-// T = trade with the villager, U = teleport home.
+// T = trade with the villager, U = teleport home, LK = look (peek menus from afar).
 const keys = {};
-const KEYMAP = { ArrowLeft: 'L', a: 'L', ArrowRight: 'R', d: 'R', ArrowUp: 'J', w: 'J', ' ': 'J', j: 'A', x: 'A', z: 'A', e: 'E', Enter: 'E', u: 'U', t: 'T' };
+const KEYMAP = { ArrowLeft: 'L', a: 'L', ArrowRight: 'R', d: 'R', ArrowUp: 'J', w: 'J', ' ': 'J', j: 'A', x: 'A', z: 'A', e: 'E', Enter: 'E', u: 'U', t: 'T', l: 'LK' };
 
 addEventListener('keydown', e => { const k = KEYMAP[e.key] || KEYMAP[e.key.toLowerCase()]; if (k) { keys[k] = true; e.preventDefault(); } });
 addEventListener('keyup', e => { const k = KEYMAP[e.key] || KEYMAP[e.key.toLowerCase()]; if (k) keys[k] = false; });
@@ -14,7 +14,7 @@ const bindBtn = (id, k) => {
   el.addEventListener('mousedown', () => keys[k] = true);
   el.addEventListener('mouseup', () => keys[k] = false);
 };
-bindBtn('bL', 'L'); bindBtn('bR', 'R'); bindBtn('bJ', 'J'); bindBtn('bA', 'A'); bindBtn('bE', 'E'); bindBtn('bT', 'U'); bindBtn('bTr', 'T');
+bindBtn('bL', 'L'); bindBtn('bR', 'R'); bindBtn('bJ', 'J'); bindBtn('bA', 'A'); bindBtn('bE', 'E'); bindBtn('bT', 'U'); bindBtn('bTr', 'T'); bindBtn('bLk', 'LK');
 
 // Scene transitions on any interaction.
 cv.addEventListener('pointerdown', e => {

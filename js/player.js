@@ -29,6 +29,15 @@ function updatePlayer() {
   if (keys.E && near(p.x, castle.x + castle.w / 2, 220) && p.g) { menuOpen = true; menuMode = 'build'; keys.E = false; }
   // trade with the villager (T) while they're alive and nearby
   if (keys.T && villager && near(p.x, villager.x, 140) && p.g && !menuOpen) { menuOpen = true; menuMode = 'trade'; tradeSel = 0; keys.T = false; }
+  // look (L): peek at your builds/trades from ANY distance — but the menus
+  // only let you buy when you're actually close (see inBuildRange/inTradeRange).
+  // Pressing Look cycles: closed → build → trade → closed.
+  if (keys.LK) {
+    keys.LK = false;
+    if (!menuOpen) { menuOpen = true; menuMode = 'build'; menuSel = 0; }
+    else if (menuMode === 'build' && villager) { menuMode = 'trade'; tradeSel = 0; }
+    else menuOpen = false;
+  }
   // teleport home (U) — one-minute cooldown
   if (p.tpCd > 0) p.tpCd--;
   if (keys.U && p.tpCd <= 0 && !menuOpen) {

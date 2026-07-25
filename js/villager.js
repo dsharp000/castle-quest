@@ -30,6 +30,9 @@ function rollTrades() {
 }
 
 var tradeSel = 0;
+// Trading only works up close — the Look button opens this menu from afar,
+// but purchases are blocked unless the knight is standing by the trader.
+const inTradeRange = () => !!villager && near(player.x, villager.x, 140);
 function updateTradeMenu() {
   if (!villager) { menuOpen = false; return; } // the trader is gone…
   const trades = villager.trades;
@@ -37,9 +40,12 @@ function updateTradeMenu() {
   if (keys.L) { tradeSel = (tradeSel + trades.length - 1) % trades.length; keys.L = false; }
   if (keys.R) { tradeSel = (tradeSel + 1) % trades.length; keys.R = false; }
   if (keys.A || keys.E || keys.T) {
-    const tr = trades[tradeSel];
-    if (res.gold >= tr.gold) { res.gold -= tr.gold; tr.act(); say(`🤝 Traded ${tr.gold} 🪙 for ${tr.label}`, 100); sfx.build(); }
-    else { say(`🧑‍🌾 ${villager.name} wants ${tr.gold} 🪙 for that!`, 80); sfx.deny(); }
+    if (!inTradeRange()) { say('👁 Too far to trade — stand by the trader!', 90); sfx.deny(); }
+    else {
+      const tr = trades[tradeSel];
+      if (res.gold >= tr.gold) { res.gold -= tr.gold; tr.act(); say(`🤝 Traded ${tr.gold} 🪙 for ${tr.label}`, 100); sfx.build(); }
+      else { say(`🧑‍🌾 ${villager.name} wants ${tr.gold} 🪙 for that!`, 80); sfx.deny(); }
+    }
     keys.A = false; keys.E = false; keys.T = false;
   }
 }
@@ -129,8 +135,10 @@ function drawTradeMenu() {
   ctx.fillStyle = '#000000aa'; ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = '#2e2438'; ctx.strokeStyle = '#6b4a2b'; ctx.lineWidth = 4;
   ctx.fillRect(W / 2 - 210, 100, 420, 46 * trades.length + 80); ctx.strokeRect(W / 2 - 210, 100, 420, 46 * trades.length + 80);
-  ctx.font = 'bold 18px sans-serif'; ctx.fillStyle = '#ffc94d'; ctx.textAlign = 'center';
-  ctx.fillText(`🤝 ${villager.name}'s trades — you have ${res.gold} 🪙`, W / 2, 130);
+  const close = inTradeRange();
+  ctx.font = 'bold 18px sans-serif'; ctx.fillStyle = close ? '#ffc94d' : '#8fb3e0'; ctx.textAlign = 'center';
+  ctx.fillText(close ? `🤝 ${villager.name}'s trades — you have ${res.gold} 🪙`
+    : `👁 ${villager.name}'s trades from afar — you have ${res.gold} 🪙`, W / 2, 130);
   trades.forEach((tr, i) => {
     const y = 150 + i * 46, sel = i === tradeSel, afford = res.gold >= tr.gold;
     ctx.fillStyle = sel ? '#7a5230' : '#3a2f4a'; ctx.fillRect(W / 2 - 190, y - 18, 380, 40);
@@ -140,6 +148,7 @@ function drawTradeMenu() {
     ctx.fillText(`${tr.gold} 🪙`, W / 2 + 178, y + 6);
   });
   ctx.textAlign = 'center'; ctx.font = '12px sans-serif'; ctx.fillStyle = '#c9b68a';
-  ctx.fillText('↑/← → select • J/E buy • new trades each raid • tap outside to close', W / 2, 150 + trades.length * 46 + 30);
+  ctx.fillText(close ? '↑/← → select • J/E buy • L peeks builds • tap outside to close'
+    : '👁 look only — get closer to trade • L peeks builds • tap outside to close', W / 2, 150 + trades.length * 46 + 30);
   ctx.textAlign = 'left';
 }

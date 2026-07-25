@@ -2,6 +2,9 @@
 
 const castleDef = () => castle.walls * 10;
 const castleRight = () => castle.x + castle.w + castle.walls * 18;
+// Building only works up close — the Look button opens this menu from afar,
+// but purchases are blocked unless the knight is standing by the castle.
+const inBuildRange = () => near(player.x, castle.x + castle.w / 2, 220);
 
 const MENU = [
   { n: '🧱 Build Wall', cost: { wood: 6, stone: 7 }, info: 'Slows raiders (+10 def)', act: () => castle.walls++ },
@@ -18,10 +21,13 @@ function updateMenu() {
   if (keys.L) { menuSel = (menuSel + MENU.length - 1) % MENU.length; keys.L = false; }
   if (keys.R) { menuSel = (menuSel + 1) % MENU.length; keys.R = false; }
   if (keys.A || keys.E) {
-    const m = MENU[menuSel];
-    if (Object.entries(m.cost).every(([k, v]) => res[k] >= v)) {
-      Object.entries(m.cost).forEach(([k, v]) => res[k] -= v); m.act(); say(`${m.n} ✔`, 90); sfx.build();
-    } else { say('Not enough materials!', 80); sfx.deny(); }
+    if (!inBuildRange()) { say('👁 Too far to build — stand by your castle!', 90); sfx.deny(); }
+    else {
+      const m = MENU[menuSel];
+      if (Object.entries(m.cost).every(([k, v]) => res[k] >= v)) {
+        Object.entries(m.cost).forEach(([k, v]) => res[k] -= v); m.act(); say(`${m.n} ✔`, 90); sfx.build();
+      } else { say('Not enough materials!', 80); sfx.deny(); }
+    }
     keys.A = false; keys.E = false;
   }
 }
@@ -83,8 +89,9 @@ function drawMenu() {
   ctx.fillStyle = '#000000aa'; ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = '#2e2438'; ctx.strokeStyle = '#6b4a2b'; ctx.lineWidth = 4;
   ctx.fillRect(W / 2 - 210, 100, 420, 46 * MENU.length + 80); ctx.strokeRect(W / 2 - 210, 100, 420, 46 * MENU.length + 80);
-  ctx.font = 'bold 18px sans-serif'; ctx.fillStyle = '#ffc94d'; ctx.textAlign = 'center';
-  ctx.fillText('🏰 CASTLE — build & craft', W / 2, 130);
+  const close = inBuildRange();
+  ctx.font = 'bold 18px sans-serif'; ctx.fillStyle = close ? '#ffc94d' : '#8fb3e0'; ctx.textAlign = 'center';
+  ctx.fillText(close ? '🏰 CASTLE — build & craft' : '👁 LOOKING — walk to your castle to build', W / 2, 130);
   MENU.forEach((m, i) => {
     const y = 150 + i * 46, sel = i === menuSel;
     const afford = Object.entries(m.cost).every(([k, v]) => res[k] >= v);
@@ -96,6 +103,7 @@ function drawMenu() {
     ctx.fillText(Object.entries(m.cost).map(([k, v]) => `${v}${{ wood: '🪵', stone: '🪨', iron: '⚙️' }[k]}`).join(' '), W / 2 + 178, y + 6);
   });
   ctx.textAlign = 'center'; ctx.font = '12px sans-serif'; ctx.fillStyle = '#c9b68a';
-  ctx.fillText('↑/← → select • J/E buy • tap outside to close', W / 2, 150 + MENU.length * 46 + 30);
+  ctx.fillText(close ? '↑/← → select • J/E buy • L peeks trades • tap outside to close'
+    : '👁 look only — get closer to build • L peeks trades • tap outside to close', W / 2, 150 + MENU.length * 46 + 30);
   ctx.textAlign = 'left';
 }
