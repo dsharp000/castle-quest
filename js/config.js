@@ -4,6 +4,7 @@
 const cv = document.getElementById('game'), ctx = cv.getContext('2d');
 const W = cv.width, H = cv.height;
 const GRAV = 0.55;
+const MAX_MEAT = 10; // raw meat is capped — your pack only holds so much
 
 const rand = (a, b) => a + Math.random() * (b - a);
 const ri = (a, b) => Math.floor(rand(a, b + 1));

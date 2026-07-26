@@ -277,6 +277,29 @@ selLevel = 1; reset();
 check('the next level then starts with no meat', res.meat === 0);
 carriedMeat = 0; persistMeat(); // leave a clean slate for the remaining tests
 
+// ---- quitting a level (without beating it) keeps your meat ----
+carriedMeat = 0;
+selLevel = 2; reset();
+killEnemy(goblins.find(function (g) { return g.kind === 'snake'; }));
+var keptOnQuit = res.meat; frame(1);
+quitToTitle();
+check('quitting to the title keeps your meat', scene === 'title' && carriedMeat === keptOnQuit && keptOnQuit >= 1);
+selLevel = 2; reset();
+check('the meat is still there on the next run', res.meat === keptOnQuit);
+
+// ---- raw meat is capped at MAX_MEAT (10) ----
+carriedMeat = 0; selLevel = 2; reset(); res.meat = 0;
+var guard = 0;
+while (res.meat < MAX_MEAT && guard++ < 200) killEnemy(goblins.find(function (g) { return g.kind === 'snake'; }));
+var atCap = res.meat;
+killEnemy(goblins.find(function (g) { return g.kind === 'snake'; })); // one more at the cap
+check('meat never exceeds the cap of 10', MAX_MEAT === 10 && atCap === 10 && res.meat === 10);
+// the drop bag can't push you over the cap either
+res.meat = 8; dropBag = { x: player.x, wood: 0, stone: 0, iron: 0, gold: 0, meat: 6 };
+player.x = dropBag.x; player.y = GROUND; frame(1);
+check('reclaiming a bag stays within the cap', res.meat === 10);
+carriedMeat = 0; persistMeat();
+
 reset();
 paused = true;
 var rt0 = runTime, rd0 = raidTimer, px0 = player.x;

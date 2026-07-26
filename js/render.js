@@ -59,7 +59,7 @@ function drawHUD() {
   ctx.textAlign = 'center'; ctx.fillStyle = '#ffe9a8'; ctx.font = 'bold 16px sans-serif';
   ctx.fillText(`⏱ ${fmtTime(runTime)}`, W / 2, 30); ctx.textAlign = 'left';
   ctx.fillStyle = '#ffe9a8'; ctx.font = 'bold 14px sans-serif';
-  ctx.fillText(`🪵 ${res.wood}   🪨 ${res.stone}   ⚙️ ${res.iron}   🪙 ${res.gold}${res.meat ? `   🥩 ${res.meat}` : ''}   ⚔️ dmg ${swordDmg()}   🌀 ${player.tpCd > 0 ? Math.ceil(player.tpCd / 60) + 's' : 'ready (U)'}`, 16, 48);
+  ctx.fillText(`🪵 ${res.wood}   🪨 ${res.stone}   ⚙️ ${res.iron}   🪙 ${res.gold}${res.meat ? `   🥩 ${res.meat}/${MAX_MEAT}` : ''}   ⚔️ dmg ${swordDmg()}   🌀 ${player.tpCd > 0 ? Math.ceil(player.tpCd / 60) + 's' : 'ready (U)'}`, 16, 48);
   // castle hp + raid countdown
   ctx.textAlign = 'right';
   ctx.fillText(`🏰 ${Math.max(0, Math.ceil(castle.hp))}/${castle.maxHp}`, W - 16, 30);
@@ -123,6 +123,11 @@ function drawTitle() {
     ctx.fillStyle = '#f3e5c3';
     ctx.fillText(b ? `🏆 best: ${fmtTime(b.time)} — ${b.name || 'Knight'}` : 'no times yet — be the first!', c.x + c.w / 2, c.y + 72);
   });
+  // carried meat survives quitting — show it so players know it's safe
+  if (carriedMeat > 0) {
+    ctx.font = 'bold 14px sans-serif'; ctx.fillStyle = '#ffcf9a';
+    ctx.fillText(`🥩 Raw meat in your pack: ${carriedMeat}/${MAX_MEAT} — kept even when you quit`, W / 2, 414);
+  }
   ctx.font = 'bold 16px sans-serif'; ctx.fillStyle = Math.floor(t / 30) % 2 ? '#ffc94d' : '#fff';
   ctx.fillText('←/→ or tap a card to choose • any other key (or tap it again) to start', W / 2, H - 42);
   ctx.textAlign = 'left';

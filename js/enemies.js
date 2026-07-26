@@ -100,7 +100,11 @@ function killEnemy(g) {
   // sand-vipers also drop raw meat — a keeper resource for later (kept for the
   // whole run, only lost if you die; it rides in `res` like wood/stone/iron/gold)
   let extra = '';
-  if (g.kind === 'snake') { const meat = ri(1, 2); res.meat += meat; extra = ` +${meat} 🥩`; }
+  if (g.kind === 'snake') {
+    const meat = Math.min(ri(1, 2), MAX_MEAT - res.meat); // capped — pack only holds MAX_MEAT
+    if (meat > 0) { res.meat += meat; extra = ` +${meat} 🥩`; }
+    else extra = ' (🥩 pack full)';
+  }
   pop(g.x, g.y - 50, `+${iron} ⚙️${wood ? ` +${wood} 🪵` : ''}${extra}`);
   puff(g.x, g.y - 25, '#ffd98a', 10);
 }
