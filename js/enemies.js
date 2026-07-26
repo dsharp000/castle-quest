@@ -164,6 +164,34 @@ function drawTroll() {
       ctx.strokeStyle = '#e5484d'; ctx.lineWidth = 2; ctx.beginPath();
       ctx.moveTo(42, -82 + bob); ctx.lineTo(55, -76 + bob); ctx.moveTo(42, -82 + bob); ctx.lineTo(55, -88 + bob); ctx.stroke();
     }
+  } else if (tr.shape === 'salamander') {
+    // a big, low, four-legged cave amphibian — dark body with glowing spots,
+    // feathery gills, a broad grinning head. c1 = body, c2 = spots/gills.
+    const c1 = tr.c1 || '#43372f', c2 = tr.c2 || '#e8892b';
+    // tail: a tapering trail of coils curling up behind
+    for (let i = 5; i >= 1; i--) {
+      const r = 6 + i * 1.8, sy = -14 + bob - i * 1.5 + Math.sin(t / 9 + i) * 2;
+      ctx.fillStyle = c1; ctx.beginPath(); ctx.ellipse(-30 - i * 9, sy, r, r * 0.72, 0, 0, 2 * Math.PI); ctx.fill();
+    }
+    // four stubby legs splayed on the floor
+    ctx.fillStyle = c1;
+    ctx.fillRect(-28, -10, 10, 12); ctx.fillRect(-16, -8, 10, 12);
+    ctx.fillRect(6, -8, 10, 12); ctx.fillRect(18, -10, 10, 12);
+    // long low body
+    ctx.fillStyle = c1; ctx.beginPath(); ctx.ellipse(-2, -22 + bob, 38, 19, 0, 0, 2 * Math.PI); ctx.fill();
+    // glowing back spots
+    ctx.fillStyle = c2;
+    for (const sx of [-24, -8, 8, 22]) { ctx.beginPath(); ctx.ellipse(sx, -32 + bob, 6, 4.5, 0, 0, 2 * Math.PI); ctx.fill(); }
+    // broad head at the front
+    ctx.fillStyle = c1; ctx.beginPath(); ctx.ellipse(34, -25 + bob, 21, 16, 0, 0, 2 * Math.PI); ctx.fill();
+    // feathery gill frills
+    ctx.strokeStyle = c2; ctx.lineWidth = 3;
+    for (const gy of [-36, -27, -18]) { ctx.beginPath(); ctx.moveTo(22, gy + bob); ctx.lineTo(10, gy - 3 + bob); ctx.stroke(); }
+    // wide grin
+    ctx.strokeStyle = '#1c1208'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(28, -17 + bob); ctx.lineTo(52, -19 + bob); ctx.stroke();
+    // eye
+    ctx.fillStyle = '#ffe08a'; ctx.beginPath(); ctx.arc(40, -31 + bob, 4.5, 0, 2 * Math.PI); ctx.fill();
+    ctx.fillStyle = '#1c1208'; ctx.beginPath(); ctx.arc(41, -31 + bob, 2, 0, 2 * Math.PI); ctx.fill();
   } else {
     ctx.fillStyle = tr.c1 || '#5a6b4a'; ctx.fillRect(-24, -70 + bob, 48, 58);
     ctx.fillStyle = tr.c2 || '#6b7c5a'; ctx.fillRect(-18, -95 + bob, 36, 28);

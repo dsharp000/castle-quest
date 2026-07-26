@@ -30,7 +30,7 @@ var read = function (p) { return $.NSString.stringWithContentsOfFileEncodingErro
 var base = $.NSFileManager.defaultManager.currentDirectoryPath.js;
 // JavaScriptCore drops top-level const/let bindings between eval() calls,
 // so rewrite them to var when loading (test harness only — files are unchanged).
-['js/config.js', 'levels/level1.js', 'levels/level2.js', 'levels/level3.js', 'js/input.js', 'js/audio.js', 'js/world.js',
+['js/config.js', 'levels/level1.js', 'levels/level2.js', 'levels/level3.js', 'levels/level4.js', 'js/input.js', 'js/audio.js', 'js/world.js',
  'js/player.js', 'js/enemies.js', 'js/castle.js', 'js/villager.js', 'js/render.js', 'js/main.js']
   .forEach(function (f) { (1, eval)(read(base + '/' + f).replace(/\b(const|let)\s+/g, 'var ')); });
 
@@ -226,6 +226,21 @@ check('level 3 win uses its own goal', scene === 'win');
 enteringName = false;
 var lastCard = titleCard(LEVELS.length - 1);
 check('title cards all fit on screen', titleCard(0).x >= 0 && lastCard.x + lastCard.w <= W);
+
+// ---- level 4: Cavernous Cave — giant salamander boss ----
+selLevel = 3; reset();
+check('level 4 loads with its own world', level === LEVELS[3] && WORLD_W === LEVELS[3].worldW && trees.length > 0);
+check('level 4 goblins are the toughest (5 hp)', goblins[0].hp === 5 && goblins[0].max === 5);
+check('level 4 boss is the giant salamander', troll.name.indexOf('SALAMANDER') >= 0 && troll.shape === 'salamander');
+trees = []; rocks = []; ores = []; goblins = []; raiders = [];
+troll.hp = 1; player.x = troll.x - 30; player.y = GROUND; player.face = 1;
+keys.A = true; frame(30); keys.A = false;
+check('level 4 boss can be defeated', !troll.alive);
+castle.keep = 5; castle.walls = 5; castle.towers = 5; frame(1);
+check('level 3 goal is not enough on level 4', scene === 'game');
+castle.keep = 5; castle.walls = 6; castle.towers = 5; frame(1);
+check('level 4 win uses its own goal', scene === 'win');
+enteringName = false;
 
 // ---- level 3: fast sand-viper snakes with a venomous every-4th bite ----
 selLevel = 2; reset();
