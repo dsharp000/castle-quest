@@ -1,15 +1,15 @@
-// Level 4 — "Cavernous Cave": a dark, rocky underground gauntlet and the
-// hardest level yet (⭐⭐⭐). Big world, sparse trees but plenty of rock,
-// tougher goblins, meaner/faster raids, a weaker castle, and a tall win goal.
-// The boss is the GIANT SALAMANDER — a huge four-legged cave amphibian
-// (shape: 'salamander', dark body with glowing orange spots).
+// Level 4 — "Cavernous Cave": a dark, rocky underground level tuned to the
+// Hard tier (⭐⭐, on par with the desert). Big world, sparse trees but plenty
+// of rock, sturdy goblins, and a stone-floor cave theme. The boss is the
+// GIANT SALAMANDER — a huge four-legged cave amphibian (shape: 'salamander',
+// dark body with glowing orange spots).
 LEVELS.push({
   name: 'Cavernous Cave',
-  tag: '⭐⭐⭐ Super Hard',
+  tag: '⭐⭐ Hard',
   worldW: 5600,
   groundY: 420,
   playerStart: 2940,
-  castle: { x: 2600, w: 200, hp: 75 },
+  castle: { x: 2600, w: 200, hp: 85 },
   platforms: [
     { x: 500,  y: 320, w: 130 },  // stalagmite ledges
     { x: 1150, y: 315, w: 120 },
@@ -27,14 +27,14 @@ LEVELS.push({
     gold:    [{ from: 250, to: 850,  gap: [720, 1020] }, { from: 3950, to: -650, gap: [720, 1020] }],
     goblins: [{ from: 550, to: 2450, gap: [280, 410] }, { from: 3000, to: -400, gap: [280, 410] }],
   },
-  goblinMinAlive: 11,
-  goblinHp: 5,                 // toughest goblins yet
+  goblinMinAlive: 10,
+  goblinHp: 4,                 // sturdy, same as the desert
   goblinRespawnZone: [{ from: 650, to: 2350 }, { from: 2950, to: -500 }],
-  boss: { x: -260, hp: 32, dmg: 3, name: '🦎 GIANT SALAMANDER', shape: 'salamander', c1: '#43372f', c2: '#e8892b' },
+  boss: { x: -260, hp: 24, dmg: 2, name: '🦎 GIANT SALAMANDER', shape: 'salamander', c1: '#43372f', c2: '#e8892b' },
   chest: { x: -140, loot: { wood: 8, stone: 10, iron: 12, gold: 5 } },
   relic: { x: 120, bonus: 3 },
-  raids: { firstDelaySec: 38, extraDelayPerWaveSec: 4, baseCount: 3, maxCount: 10, hpBonus: 1 },
-  goal: { keep: 5, walls: 6, towers: 5 }, // plus: defeat the boss
+  raids: { firstDelaySec: 44, extraDelayPerWaveSec: 5, baseCount: 2, maxCount: 8 },
+  goal: { keep: 5, walls: 5, towers: 4 }, // plus: defeat the boss
   theme: {
     sky0: '#0e0b14', sky1: '#241b2e', deep0: '#2a231f', deep1: '#181310', // cave ceiling → dark rock
     hills: '#2a2430', far: '#1e1a24',
