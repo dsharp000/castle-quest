@@ -86,8 +86,8 @@ function spawnRaid() {
   // the raid horn also makes the villager rethink their prices
   if (villager) { villager.trades = rollTrades(); pop(villager.x, villager.y - 74, '🤝 new trades!'); }
   const hp = 3 + Math.floor(wave / 2) + (level.raids.hpBonus || 0);
+  const fromLeft = Math.random() < .5; // the WHOLE raid strikes from one side — chosen here, never announced
   for (let i = 0; i < n; i++) {
-    const fromLeft = Math.random() < .5; // which side each raider strikes from stays a surprise
     const d = rand(40, 300) + Math.floor(i / 2) * 50;
     raiders.push({ x: fromLeft ? d : WORLD_W - d, y: GROUND, hp, max: hp, face: fromLeft ? 1 : -1, hurt: 0, atkCd: 0, raider: true });
   }

@@ -74,10 +74,14 @@ check('sword chops tree', tr.hp < hp0);
 
 raidTimer = 1; frame(2);
 check('raid spawns raiders', wave === 1 && raiders.length > 0);
-// sides are random per raider — sample a bunch of raids to see both used
-for (var s = 0; s < 8; s++) spawnRaid();
-check('raids can strike either side', raiders.some(function (r) { return r.x < castle.x; }) && raiders.some(function (r) { return r.x > castle.x + castle.w; }));
-raiders = raiders.slice(0, 3); // keep just the first raid for the next checks
+// a single raid comes ENTIRELY from one side (all raiders share it)
+var raidMid = castle.x + castle.w / 2;
+check('a raid all comes from one side', raiders.every(function (r) { return r.x < raidMid; }) || raiders.every(function (r) { return r.x > raidMid; }));
+// but the side is a surprise each raid — over many raids, both sides get used
+var sawLeft = false, sawRight = false;
+for (var s = 0; s < 50 && !(sawLeft && sawRight); s++) { raiders = []; spawnRaid(); if (raiders[0].x < raidMid) sawLeft = true; else sawRight = true; }
+check('raids strike either side across many raids', sawLeft && sawRight);
+raiders = raiders.slice(0, 3); // keep just a few raiders for the next checks
 
 res.wood = 99; res.stone = 99; res.iron = 99;
 player.x = castle.x + castle.w / 2; player.y = GROUND; // stand at the castle to build

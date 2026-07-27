@@ -36,8 +36,8 @@ plain `<script>` tags share globals (NOT ES modules), so double-clicking
 - Time: `t` increments once per frame (~60 fps). Timers count frames
   (`60 * seconds`). Throttled events use `t % N === 0`.
 - World coordinates: x grows rightward. The castle sits mid-world; each
-  raider picks a random edge to strike from and the raid banner never says
-  which (side-aware targeting in `updateRaiders`). The
+  whole raid strikes from one random edge (all its raiders share it) and the
+  raid banner never says which (side-aware targeting in `updateRaiders`). The
   troll boss + chest are always at the far right, the legendary sword `relic`
   (+3 swordLvl, one-time) at the far left. An entity's `x,y` is its feet at
   `GROUND` (y=420) when standing. In level data, **negative x = offset from
