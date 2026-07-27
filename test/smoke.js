@@ -343,6 +343,15 @@ keys.R = true; frame(20); keys.R = false; var powerDist = player.x - 1000;
 check('power mode moves you much faster', powerDist > normalDist + 30);
 togglePower(); // ⚡ button / P toggles it back off (we're in a game scene)
 check('toggling power mode turns it off', godMode === false);
+// password gate: can't turn power mode ON without the password
+godMode = false; powerUnlocked = false;
+togglePower(); // headless has no prompt(), so it stays locked & off
+check('power mode stays locked without the password', godMode === false && powerUnlocked === false);
+check('a wrong password is rejected', tryPowerPassword('0000') === false && powerUnlocked === false);
+check('the password 1624 unlocks power mode', tryPowerPassword('1624') === true && powerUnlocked === true);
+togglePower(); // now unlocked → turns on with no prompt
+check('once unlocked, power mode turns on', godMode === true);
+godMode = false; powerUnlocked = false; // clean slate for later tests
 
 reset();
 check('villager spawns outside the castle walls', villager && villager.x > castleRight() && villager.x <= castleRight() + 200);

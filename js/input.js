@@ -48,9 +48,26 @@ addEventListener('keydown', e => {
 const togglePause = () => { if (scene === 'game') paused = !paused; };
 addEventListener('keydown', e => { if (e.key === 'y' || e.key === 'Y') togglePause(); });
 
-// P toggles "power mode": invincible + super fast (a cheat/fun mode). Stays on
-// until toggled off. ⚡ touch button mirrors it.
-const togglePower = () => { if (scene === 'game') { godMode = !godMode; say(godMode ? '⚡ POWER MODE ON — invincible + fast!' : '⚡ power mode off', 120); } };
+// P toggles "power mode": invincible + super fast (a cheat/fun mode). It's
+// PASSWORD-LOCKED: the first time you turn it on you must enter the password;
+// after that it's unlocked for the rest of the session. Stays on until toggled
+// off. ⚡ touch button mirrors it.
+const POWER_PASSWORD = '1624';
+var powerUnlocked = false; // becomes true once the right password is entered
+function tryPowerPassword(input) {
+  if (String(input).trim() === POWER_PASSWORD) { powerUnlocked = true; return true; }
+  return false;
+}
+const togglePower = () => {
+  if (scene !== 'game') return;
+  if (godMode) { godMode = false; say('⚡ power mode off', 120); return; }
+  if (!powerUnlocked) {
+    const ans = typeof prompt === 'function' ? prompt('🔒 Power mode is locked. Enter the password:') : null;
+    if (ans === null) return; // cancelled or unavailable
+    if (!tryPowerPassword(ans)) { say('🔒 Wrong password — power mode stays locked.', 140); sfx.deny(); return; }
+  }
+  godMode = true; say('⚡ POWER MODE ON — invincible + fast!', 120);
+};
 addEventListener('keydown', e => { if (e.key === 'p' || e.key === 'P') togglePower(); });
 (() => { const b = document.getElementById('bPow'); if (b) b.addEventListener('click', togglePower); })();
 
