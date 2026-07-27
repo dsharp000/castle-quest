@@ -72,6 +72,13 @@ function drawHUD() {
   ctx.font = '11px sans-serif'; ctx.fillStyle = '#c9b68a';
   ctx.fillText(`GOAL: Keep lvl ${goal.keep} (${castle.keep}/${goal.keep}) • ${goal.walls} walls (${castle.walls}/${goal.walls}) • ${goal.towers} towers (${castle.towers}/${goal.towers}) • defeat the troll ${troll.alive ? '❌' : '✔️'}`, 16, H - 10);
   ctx.textAlign = 'right'; ctx.fillText(muted ? '🔇 M' : '🔊 M', W - 16, H - 10); ctx.textAlign = 'left';
+  // power-mode banner (flashing, so you know the cheat is on)
+  if (godMode) {
+    ctx.textAlign = 'center'; ctx.font = 'bold 14px sans-serif';
+    ctx.fillStyle = Math.floor(t / 15) % 2 ? '#ffd23f' : '#fff';
+    ctx.fillText('⚡ POWER MODE — invincible + fast (press P to stop)', W / 2, H - 28);
+    ctx.textAlign = 'left';
+  }
 }
 
 function drawCountdown() {

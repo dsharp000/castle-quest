@@ -330,6 +330,20 @@ check('resume unfreezes the game', runTime === rt0 + 5);
 quitToTitle();
 check('Q quits back to the title screen', scene === 'title' && !paused);
 
+// ---- power mode (P): invincible + super fast ----
+reset(); godMode = false;
+player.hp = player.maxHp; var hpFull = player.hp;
+godMode = true;
+hurtPlayer(3);
+check('power mode blocks all damage', player.hp === hpFull);
+godMode = false; player.x = 1000; player.y = GROUND; player.inv = 999;
+keys.R = true; frame(20); keys.R = false; var normalDist = player.x - 1000;
+godMode = true; player.x = 1000; player.y = GROUND; player.inv = 999;
+keys.R = true; frame(20); keys.R = false; var powerDist = player.x - 1000;
+check('power mode moves you much faster', powerDist > normalDist + 30);
+togglePower(); // ⚡ button / P toggles it back off (we're in a game scene)
+check('toggling power mode turns it off', godMode === false);
+
 reset();
 check('villager spawns outside the castle walls', villager && villager.x > castleRight() && villager.x <= castleRight() + 200);
 goblins = []; player.x = 1500; player.y = GROUND; // keep everyone else out of the way

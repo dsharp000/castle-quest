@@ -6,7 +6,7 @@ const swordDmg = () => player.swordLvl;
 function updatePlayer() {
   const p = player;
   if (!menuOpen) {
-    const sp = 2.6;
+    const sp = godMode ? 6 : 2.6; // power mode: really fast
     if (keys.L) { p.vx = -sp; p.face = -1; p.walk++; }
     else if (keys.R) { p.vx = sp; p.face = 1; p.walk++; }
     else p.vx *= 0.7;
@@ -64,6 +64,7 @@ function swing() {
 }
 
 function hurtPlayer(n) {
+  if (godMode) return; // power mode: nothing can hurt you
   player.hp -= n; player.inv = 70; sfx.hurt(); puff(player.x, player.y - 30, '#ff5b5b', 8);
   if (player.hp <= 0) {
     // death penalty: materials drop where you fell (merging with any earlier
@@ -83,6 +84,11 @@ function drawPlayer() {
   const p = player;
   if (p.inv > 0 && Math.floor(t / 2) % 2 === 0) return; // invincibility blink
   ctx.save(); ctx.translate(p.x, p.y); ctx.scale(p.face, 1);
+  if (godMode) { // pulsing golden aura shows power mode is on
+    const pr = 34 + Math.sin(t / 5) * 4;
+    ctx.fillStyle = '#ffe98a22'; ctx.beginPath(); ctx.arc(0, -26, pr + 8, 0, 2 * Math.PI); ctx.fill();
+    ctx.fillStyle = '#ffd23f44'; ctx.beginPath(); ctx.arc(0, -26, pr, 0, 2 * Math.PI); ctx.fill();
+  }
   const step = p.g && Math.abs(p.vx) > .5 ? Math.sin(p.walk / 4) * 4 : 0;
   // legs
   ctx.fillStyle = '#4a3560'; ctx.fillRect(-8, -14, 7, 14 + step * 0.5); ctx.fillRect(2, -14, 7, 14 - step * 0.5);

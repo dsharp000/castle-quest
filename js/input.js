@@ -48,6 +48,12 @@ addEventListener('keydown', e => {
 const togglePause = () => { if (scene === 'game') paused = !paused; };
 addEventListener('keydown', e => { if (e.key === 'y' || e.key === 'Y') togglePause(); });
 
+// P toggles "power mode": invincible + super fast (a cheat/fun mode). Stays on
+// until toggled off. ⚡ touch button mirrors it.
+const togglePower = () => { if (scene === 'game') { godMode = !godMode; say(godMode ? '⚡ POWER MODE ON — invincible + fast!' : '⚡ power mode off', 120); } };
+addEventListener('keydown', e => { if (e.key === 'p' || e.key === 'P') togglePower(); });
+(() => { const b = document.getElementById('bPow'); if (b) b.addEventListener('click', togglePower); })();
+
 // Q quits the current run back to the title screen (abandons the run).
 const quitToTitle = () => {
   if (scene === 'game' || scene === 'over' || scene === 'win') { scene = 'title'; paused = false; menuOpen = false; }
