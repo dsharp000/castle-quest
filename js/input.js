@@ -49,18 +49,18 @@ const togglePause = () => { if (scene === 'game') paused = !paused; };
 addEventListener('keydown', e => { if (e.key === 'y' || e.key === 'Y') togglePause(); });
 
 // P toggles "power mode": invincible + super fast (a cheat/fun mode). It's
-// PASSWORD-LOCKED: the first time you turn it on you must enter the password;
-// after that it's unlocked for the rest of the session. Stays on until toggled
-// off. ⚡ touch button mirrors it.
+// PASSWORD-LOCKED: every time you turn it on you must enter the password.
+// Turning it off re-locks it, so it must be re-entered to use again.
+// ⚡ touch button mirrors it.
 const POWER_PASSWORD = '1624';
-var powerUnlocked = false; // becomes true once the right password is entered
+var powerUnlocked = false; // true only between a correct password and the next toggle-off
 function tryPowerPassword(input) {
   if (String(input).trim() === POWER_PASSWORD) { powerUnlocked = true; return true; }
   return false;
 }
 const togglePower = () => {
   if (scene !== 'game') return;
-  if (godMode) { godMode = false; say('⚡ power mode off', 120); return; }
+  if (godMode) { godMode = false; powerUnlocked = false; say('⚡ power mode off — password needed to use it again', 140); return; }
   if (!powerUnlocked) {
     const ans = typeof prompt === 'function' ? prompt('🔒 Power mode is locked. Enter the password:') : null;
     if (ans === null) return; // cancelled or unavailable

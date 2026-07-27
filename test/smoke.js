@@ -351,6 +351,10 @@ check('a wrong password is rejected', tryPowerPassword('0000') === false && powe
 check('the password 1624 unlocks power mode', tryPowerPassword('1624') === true && powerUnlocked === true);
 togglePower(); // now unlocked → turns on with no prompt
 check('once unlocked, power mode turns on', godMode === true);
+togglePower(); // turning it off re-locks it
+check('turning power mode off re-locks it', godMode === false && powerUnlocked === false);
+togglePower(); // try to turn on again — headless has no prompt, so it stays off
+check('power mode needs the password again after being turned off', godMode === false);
 godMode = false; powerUnlocked = false; // clean slate for later tests
 
 reset();
