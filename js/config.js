@@ -15,10 +15,15 @@ const worldX = x => x < 0 ? WORLD_W + x : x;
 // ---- shared mutable state (see main.js reset()) ----
 var scene = 'title', t = 0, msg = null, msgT = 0, paused = false;
 var godMode = false; // "power mode" cheat (P): invincible + super fast, persists until toggled off
+var kingMode = false; // "King Mode" admin (title screen, code 1624): pre-built castle, one-shot power, tame with no meat, wipe times
+var rageMode = false; // when the Raging Troll is unlocked, toggles the buffed boss onto Level 1 (title screen)
+var titleDeny = 0;     // frames left flashing the title screen's "that quest is locked" warning
+var justUnlocked = -1; // level index opened by the win now on screen (-1 = nothing new)
+var cheated = false; // set true if power/King mode was used at any point this run → the time won't be recorded
 var level, WORLD_W, GROUND, levelIdx = 0, selLevel = 0;
 var player, res, castle, trees, rocks, ores, golds, goblins, raiders, arrows, parts,
     platforms, raidTimer, wave, menuOpen, menuMode, troll, chest, dropBag, runTime, lastRun,
-    respawnWait, villager, relic, countdown,
+    respawnWait, villager, relic, countdown, embers, emberTimer, slimes,
     enteringName = false, nameBuf = '';
 
 // frames → "m:ss.t" for the speedrun timer and best-times table

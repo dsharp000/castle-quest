@@ -18,13 +18,32 @@ bindBtn('bL', 'L'); bindBtn('bR', 'R'); bindBtn('bJ', 'J'); bindBtn('bA', 'A'); 
 
 // Scene transitions on any interaction.
 cv.addEventListener('pointerdown', e => {
+  if (scene === 'cutscene') { endCutscene(); return; } // tap to skip the finale
   if (scene === 'title') { // tap an unselected card to pick it; anything else starts
     const r = cv.getBoundingClientRect(), mx = (e.clientX - r.left) * (W / r.width), my = (e.clientY - r.top) * (H / r.height);
+    const inBtn = b => mx > b.x && mx < b.x + b.w && my > b.y && my < b.y + b.h;
+    // 👑 King Mode (admin): code-gated on the way in; toggles off on the way out
+    if (inBtn(kingBtn())) { toggleKingMode(); return; }
+    // 👑 delete ALL times (only while King Mode is on)
+    if (kingMode && inBtn(wipeAllBtn())) {
+      if (typeof confirm !== 'function' || confirm('👑 Delete ALL best times for EVERY level?')) { clearAllTimes(); sfx.build(); }
+      return;
+    }
+    // ⚔️ toggle the Raging Troll on Level 1 (only once unlocked and Level 1 is selected)
+    if (rageUnlocked() && selLevel === 0 && inBtn(rageBtn())) { rageMode = !rageMode; sfx.build(); return; }
+    // 🗑️ clear-times button — wipes the highlighted level's best times (confirmed)
+    const cb = clearTimesBtn();
+    if (mx > cb.x && mx < cb.x + cb.w && my > cb.y && my < cb.y + cb.h) {
+      const nm = LEVELS[selLevel].name;
+      const ok = typeof confirm !== 'function' || !levelBest(selLevel) || confirm(`Clear all best times for "${nm}"?`);
+      if (ok && levelBest(selLevel)) { clearTimes(selLevel); sfx.build(); }
+      return; // never starts the game
+    }
     for (let i = 0; i < LEVELS.length; i++) {
       const c = titleCard(i);
       if (i !== selLevel && mx > c.x && mx < c.x + c.w && my > c.y && my < c.y + c.h) { selLevel = i; loadLevel(i); return; }
     }
-    reset(); return;
+    startSelected(); return; // locked quests just flash a warning
   }
   if (scene === 'win' && enteringName) { // touch devices have no keyboard — offer a dialog
     const n = prompt('Enter your name:', nameBuf);
@@ -33,16 +52,21 @@ cv.addEventListener('pointerdown', e => {
   }
   if (scene === 'over' || scene === 'win') reset();
 });
-// Title screen keys: ←/→ pick a level, 1..9 jump straight in, anything else starts.
+// Title screen keys: ←/→ pick a level (locked ones included, so you can see
+// what's coming), 1..9 jump straight in, anything else starts the selection.
 // (M is left alone so muting doesn't launch the game.)
 addEventListener('keydown', e => {
   if (scene !== 'title') return;
   const k = e.key.toLowerCase(), d = parseInt(k, 10);
   if (k === 'arrowleft' || k === 'a') { selLevel = (selLevel + LEVELS.length - 1) % LEVELS.length; loadLevel(selLevel); }
   else if (k === 'arrowright' || k === 'd') { selLevel = (selLevel + 1) % LEVELS.length; loadLevel(selLevel); }
-  else if (d >= 1 && d <= LEVELS.length) { selLevel = d - 1; reset(); }
-  else if (k !== 'm') reset();
+  else if (d >= 1 && d <= LEVELS.length) { selLevel = d - 1; loadLevel(selLevel); startSelected(); }
+  else if (k === 'c') previewCutscene(); // PREVIEW: watch the volcano ride-off finale
+  else if (k !== 'm') startSelected();
 });
+
+// Any key (except mute) skips the ride-off finale straight to the win screen.
+addEventListener('keydown', e => { if (scene === 'cutscene' && e.key.toLowerCase() !== 'm') endCutscene(); });
 
 // Y toggles pause (freezes timer, enemies, player — everything).
 const togglePause = () => { if (scene === 'game') paused = !paused; };
@@ -69,6 +93,17 @@ const togglePower = () => {
   godMode = true; say('⚡ POWER MODE ON — invincible + fast!', 120);
 };
 addEventListener('keydown', e => { if (e.key === 'p' || e.key === 'P') togglePower(); });
+
+// 👑 King Mode (admin) — title-screen button. Entering requires the code 1624;
+// while on you get a pre-built castle, one-shot power mode, meat-free taming,
+// and the "delete ALL times" button. Clicking it again turns admin off.
+function toggleKingMode() {
+  if (kingMode) { kingMode = false; godMode = false; powerUnlocked = false; sfx.deny(); return; }
+  const ans = typeof prompt === 'function' ? prompt('👑 Enter the King’s code to unlock admin:') : null;
+  if (ans === null) return; // cancelled or unavailable
+  if (String(ans).trim() !== POWER_PASSWORD) { sfx.deny(); return; } // wrong code
+  kingMode = true; powerUnlocked = true; godMode = true; sfx.chest();
+}
 (() => { const b = document.getElementById('bPow'); if (b) b.addEventListener('click', togglePower); })();
 
 // Q quits the current run back to the title screen (abandons the run).

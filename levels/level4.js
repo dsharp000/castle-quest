@@ -29,6 +29,7 @@ LEVELS.push({
   },
   goblinMinAlive: 10,
   goblinHp: 4,                 // sturdy, same as the desert
+  slime: { everyRaids: 6, maxSize: 8 }, // a baby slime oozes in every 6 raids; eats to grow (see updateSlimes)
   goblinRespawnZone: [{ from: 650, to: 2350 }, { from: 2950, to: -500 }],
   boss: { x: -260, hp: 24, dmg: 2, name: '🦎 GIANT SALAMANDER', shape: 'salamander', c1: '#43372f', c2: '#e8892b' },
   chest: { x: -140, loot: { wood: 8, stone: 10, iron: 12, gold: 5 } },
@@ -39,5 +40,6 @@ LEVELS.push({
     sky0: '#0e0b14', sky1: '#241b2e', deep0: '#2a231f', deep1: '#181310', // cave ceiling → dark rock
     hills: '#2a2430', far: '#1e1a24',
     ground: '#4a4048', edge: '#332d38', tufts: '#5f5566', // grey stone floor + pebbles
+    treeTrunk: '#0e0e0e', treeLeaf: '#141414', treeLeafHurt: '#262626', // charred black cave fungus-trees
   },
 });

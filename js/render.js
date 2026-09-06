@@ -37,6 +37,7 @@ function draw() {
   drawWorld();
   drawVillager();
   drawEnemies();
+  drawSlimes();
   drawArrows();
   drawPlayer();
   drawParticles();
@@ -50,6 +51,17 @@ function draw() {
   }
 }
 
+// A little heap of gold nuggets, centered at (x,y) — the inventory's "gold".
+function goldPile(x, y, s) {
+  s = s || 1; ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+  ctx.fillStyle = '#b8860b'; ctx.beginPath(); ctx.ellipse(0, 5, 11, 4, 0, 0, 2 * Math.PI); ctx.fill(); // shadowed base
+  ctx.fillStyle = '#ffd23f'; // stacked nuggets
+  for (const n of [[-6, 2], [0, 3], [6, 2], [-3, -2], [3, -2], [0, -6]]) { ctx.beginPath(); ctx.arc(n[0], n[1], 3.4, 0, 2 * Math.PI); ctx.fill(); }
+  ctx.fillStyle = '#fff3b0'; // glints
+  for (const n of [[-6, 2], [0, 3], [6, 2], [-3, -2], [3, -2], [0, -6]]) { ctx.beginPath(); ctx.arc(n[0] - 1, n[1] - 1, 1.1, 0, 2 * Math.PI); ctx.fill(); }
+  ctx.restore();
+}
+
 function drawHUD() {
   ctx.fillStyle = '#00000077'; ctx.fillRect(8, 8, W - 16, 46);
   ctx.font = '16px sans-serif';
@@ -59,7 +71,12 @@ function drawHUD() {
   ctx.textAlign = 'center'; ctx.fillStyle = '#ffe9a8'; ctx.font = 'bold 16px sans-serif';
   ctx.fillText(`⏱ ${fmtTime(runTime)}`, W / 2, 30); ctx.textAlign = 'left';
   ctx.fillStyle = '#ffe9a8'; ctx.font = 'bold 14px sans-serif';
-  ctx.fillText(`🪵 ${res.wood}   🪨 ${res.stone}   ⚙️ ${res.iron}   🪙 ${res.gold}${res.meat ? `   🥩 ${res.meat}/${MAX_MEAT}` : ''}   ⚔️ dmg ${swordDmg()}   🌀 ${player.tpCd > 0 ? Math.ceil(player.tpCd / 60) + 's' : 'ready (U)'}`, 16, 48);
+  // gold shows as a drawn heap of nuggets instead of a coin emoji
+  const inv1 = `🪵 ${res.wood}   🪨 ${res.stone}   ⚙️ ${res.iron}   `;
+  ctx.fillText(inv1, 16, 48);
+  const gx = 16 + ctx.measureText(inv1).width;
+  goldPile(gx + 9, 42);
+  ctx.fillText(`${res.gold}${res.meat ? `   🥩 ${res.meat}/${MAX_MEAT}` : ''}   ⚔️ dmg ${swordDmg()}   🌀 ${player.tpCd > 0 ? Math.ceil(player.tpCd / 60) + 's' : 'ready (U)'}`, gx + 22, 48);
   // castle hp + raid countdown
   ctx.textAlign = 'right';
   ctx.fillText(`🏰 ${Math.max(0, Math.ceil(castle.hp))}/${castle.maxHp}`, W - 16, 30);
@@ -69,14 +86,24 @@ function drawHUD() {
   ctx.textAlign = 'left';
   // goal line
   const goal = level.goal;
+  const castleGoal = `Keep lvl ${goal.keep} (${castle.keep}/${goal.keep}) • ${goal.walls} walls (${castle.walls}/${goal.walls}) • ${goal.towers} towers (${castle.towers}/${goal.towers})`;
+  let bossGoal;
+  if (level.tame) { // Level 5: build → summon dragon → beat it → tame it with meat
+    if (!troll.arrived) bossGoal = 'finish the castle to summon the 🐉 dragon';
+    else if (!troll.subdued) bossGoal = 'beat the 🐉 FIRE DRAGON! ❌';
+    else if (!troll.tamed) bossGoal = `tame the 🐉 with meat (${res.meat}/${level.tame.meat} 🥩) — walk up to it`;
+    else bossGoal = 'dragon TAMED ✔️';
+  } else {
+    bossGoal = `defeat the troll ${troll.alive ? '❌' : '✔️'}`;
+  }
   ctx.font = '11px sans-serif'; ctx.fillStyle = '#c9b68a';
-  ctx.fillText(`GOAL: Keep lvl ${goal.keep} (${castle.keep}/${goal.keep}) • ${goal.walls} walls (${castle.walls}/${goal.walls}) • ${goal.towers} towers (${castle.towers}/${goal.towers}) • defeat the troll ${troll.alive ? '❌' : '✔️'}`, 16, H - 10);
+  ctx.fillText(`GOAL: ${castleGoal} • ${bossGoal}`, 16, H - 10);
   ctx.textAlign = 'right'; ctx.fillText(muted ? '🔇 M' : '🔊 M', W - 16, H - 10); ctx.textAlign = 'left';
   // power-mode banner (flashing, so you know the cheat is on)
   if (godMode) {
     ctx.textAlign = 'center'; ctx.font = 'bold 14px sans-serif';
     ctx.fillStyle = Math.floor(t / 15) % 2 ? '#ffd23f' : '#fff';
-    ctx.fillText('⚡ POWER MODE — invincible + fast (press P to stop)', W / 2, H - 28);
+    ctx.fillText(kingMode ? '👑 KING MODE — one-shot + invincible (admin)' : '⚡ POWER MODE — invincible + fast (press P to stop)', W / 2, H - 28);
     ctx.textAlign = 'left';
   }
 }
@@ -109,34 +136,100 @@ function titleCard(i) {
   const gap = 20, w = Math.min(330, (W - 40 - gap * (LEVELS.length - 1)) / LEVELS.length), total = LEVELS.length * (w + gap) - gap;
   return { x: W / 2 - total / 2 + i * (w + gap), y: 296, w, h: 92 };
 }
+// "Clear this level's times" button geometry — shared with input.js. Top-right,
+// out of the way; it wipes the CURRENTLY SELECTED level's best-times table.
+function clearTimesBtn() { return { x: W - 208, y: 16, w: 192, h: 28 }; }
+// 👑 King Mode (admin) button + its "delete ALL times" button (top-left, shared with input.js).
+function kingBtn() { return { x: 16, y: 16, w: 158, h: 28 }; }
+function wipeAllBtn() { return { x: 16, y: 50, w: 158, h: 26 }; } // only shown/active while King Mode is on
+// ⚔️ "Fight the Raging Troll" toggle — only shown/active once unlocked and Level 1 is selected.
+function rageBtn() { return { x: W / 2 - 150, y: 420, w: 300, h: 26 }; }
 
 function drawTitle() {
   ctx.fillStyle = '#1a1430'; ctx.fillRect(0, 0, W, H);
   ctx.font = '58px serif'; ctx.textAlign = 'center'; ctx.fillText('🏰', W / 2, 115);
   ctx.font = 'bold 42px sans-serif'; ctx.fillStyle = '#ffc94d'; ctx.fillText('CASTLE QUEST', W / 2, 168);
   ctx.font = '13px sans-serif'; ctx.fillStyle = '#f3e5c3';
-  ['Venture out ⬅️➡️ chop trees 🌲 mine rocks 🪨 iron ⚙️ and gold 🪙 — goblins 👺 drop loot!',
+  ['Venture out ⬅️➡️ chop trees 🌲 mine rocks 🪨 iron ⚙️ and gold 💰 — goblins 👺 drop loot!',
    'Your castle stands mid-world: build walls & towers — raids can strike from EITHER side!',
    'Claim the legendary sword 🗡️ far west… slay the troll 🧌 far east… finish your castle!'].forEach((s, i) => ctx.fillText(s, W / 2, 200 + i * 22));
   ctx.font = 'bold 13px sans-serif'; ctx.fillStyle = '#c9b68a'; ctx.fillText('— CHOOSE YOUR QUEST —', W / 2, 284);
   LEVELS.forEach((lv, i) => {
-    const c = titleCard(i), sel = i === selLevel;
-    ctx.fillStyle = sel ? '#3a2f4a' : '#241d33'; ctx.fillRect(c.x, c.y, c.w, c.h);
-    ctx.strokeStyle = sel ? '#ffc94d' : '#4a3a5a'; ctx.lineWidth = sel ? 3 : 2; ctx.strokeRect(c.x, c.y, c.w, c.h);
-    ctx.font = 'bold 17px sans-serif'; ctx.fillStyle = sel ? '#ffc94d' : '#c9b68a';
+    // A quest you haven't earned yet draws greyed-out and padlocked; 👑 King
+    // Mode opens every card (those beyond your progress get a crown corner).
+    const c = titleCard(i), sel = i === selLevel, locked = !isUnlocked(i), skip = !locked && i >= unlockedCount;
+    ctx.fillStyle = locked ? '#1e1a2a' : sel ? '#3a2f4a' : '#241d33'; ctx.fillRect(c.x, c.y, c.w, c.h);
+    ctx.strokeStyle = locked ? (sel ? '#7a6a4a' : '#332a44') : sel ? '#ffc94d' : '#4a3a5a';
+    ctx.lineWidth = sel ? 3 : 2; ctx.strokeRect(c.x, c.y, c.w, c.h);
+    ctx.font = LEVELS.length > 4 ? 'bold 15px sans-serif' : 'bold 17px sans-serif'; // names have to fit the narrower cards
+    ctx.fillStyle = locked ? '#6a6078' : sel ? '#ffc94d' : '#c9b68a';
     ctx.fillText(`${i + 1}. ${lv.name}`, c.x + c.w / 2, c.y + 28);
-    ctx.font = '12px sans-serif'; ctx.fillStyle = '#e8b640'; ctx.fillText(lv.tag || '', c.x + c.w / 2, c.y + 50);
+    ctx.font = '12px sans-serif'; ctx.fillStyle = locked ? '#5a5068' : '#e8b640'; ctx.fillText(lv.tag || '', c.x + c.w / 2, c.y + 50);
     const b = levelBest(i);
-    ctx.fillStyle = '#f3e5c3';
-    ctx.fillText(b ? `🏆 best: ${fmtTime(b.time)} — ${b.name || 'Knight'}` : 'no times yet — be the first!', c.x + c.w / 2, c.y + 72);
+    ctx.fillStyle = locked ? '#8a7a9a' : '#f3e5c3';
+    ctx.fillText(locked ? `🔒 beat Level ${i} to unlock`
+      : b ? `🏆 best: ${fmtTime(b.time)} — ${b.name || 'Knight'}` : 'no times yet — be the first!', c.x + c.w / 2, c.y + 72);
+    if (skip) { // 👑 corner badge: a quest only King Mode is letting you into
+      ctx.font = '15px serif'; ctx.textAlign = 'right';
+      ctx.fillText('👑', c.x + c.w - 6, c.y + 18); ctx.textAlign = 'center';
+    }
+    if (i === 0 && rageUnlocked()) { // Level 1 gained the Raging Troll challenge
+      ctx.font = '15px serif'; ctx.textAlign = 'right'; ctx.fillStyle = rageMode ? '#ff6a3a' : '#ffd23f';
+      ctx.fillText('⚔️', c.x + c.w - 6, c.y + 18); ctx.textAlign = 'center';
+    }
   });
+  // 👑 King Mode (admin) button — top-left; when on, reveals a "delete ALL times" button
+  const kb = kingBtn();
+  ctx.fillStyle = kingMode ? '#4a3a12' : '#241d33'; ctx.fillRect(kb.x, kb.y, kb.w, kb.h);
+  ctx.strokeStyle = kingMode ? '#ffd23f' : '#4a3a5a'; ctx.lineWidth = 2; ctx.strokeRect(kb.x, kb.y, kb.w, kb.h);
+  ctx.font = 'bold 13px sans-serif'; ctx.fillStyle = kingMode ? '#ffd23f' : '#c9b68a'; ctx.textAlign = 'center';
+  ctx.fillText(kingMode ? '👑 KING MODE: ON' : '👑 King Mode', kb.x + kb.w / 2, kb.y + 19);
+  if (kingMode) {
+    const wb = wipeAllBtn();
+    ctx.fillStyle = '#3a1420'; ctx.fillRect(wb.x, wb.y, wb.w, wb.h);
+    ctx.strokeStyle = '#c0455a'; ctx.lineWidth = 2; ctx.strokeRect(wb.x, wb.y, wb.w, wb.h);
+    ctx.font = '12px sans-serif'; ctx.fillStyle = '#e8a0a8'; ctx.fillText('🗑️ Delete ALL times', wb.x + wb.w / 2, wb.y + 18);
+  }
+  ctx.textAlign = 'left';
+  // clear-times button (acts on the highlighted level)
+  const cb = clearTimesBtn(), hasTimes = !!levelBest(selLevel);
+  ctx.fillStyle = hasTimes ? '#3a2333' : '#241d33';
+  ctx.fillRect(cb.x, cb.y, cb.w, cb.h);
+  ctx.strokeStyle = hasTimes ? '#8a4a5a' : '#3a3048'; ctx.lineWidth = 2; ctx.strokeRect(cb.x, cb.y, cb.w, cb.h);
+  ctx.font = '12px sans-serif'; ctx.fillStyle = hasTimes ? '#e8a0a8' : '#6a6078'; ctx.textAlign = 'center';
+  ctx.fillText("🗑️ Clear this level's times", cb.x + cb.w / 2, cb.y + 19);
+  ctx.textAlign = 'left';
   // carried meat survives quitting — show it so players know it's safe
   if (carriedMeat > 0) {
-    ctx.font = 'bold 14px sans-serif'; ctx.fillStyle = '#ffcf9a';
-    ctx.fillText(`🥩 Raw meat in your pack: ${carriedMeat}/${MAX_MEAT} — kept even when you quit`, W / 2, 414);
+    ctx.font = 'bold 14px sans-serif'; ctx.fillStyle = '#ffcf9a'; ctx.textAlign = 'center';
+    ctx.fillText(`🥩 Raw meat in your pack: ${carriedMeat}/${MAX_MEAT} — kept even when you quit`, W / 2, 400);
+    ctx.textAlign = 'left';
   }
-  ctx.font = 'bold 16px sans-serif'; ctx.fillStyle = Math.floor(t / 30) % 2 ? '#ffc94d' : '#fff';
-  ctx.fillText('←/→ or tap a card to choose • any other key (or tap it again) to start', W / 2, H - 42);
+  // ⚔️ Raging Troll: a SECRET until unlocked — nothing is shown while locked.
+  // Once every enemy is maxed, reveal it: a hint elsewhere, a toggle on Level 1.
+  if (rageUnlocked()) {
+    ctx.textAlign = 'center'; ctx.font = 'bold 13px sans-serif';
+    if (selLevel !== 0) {
+      ctx.fillStyle = Math.floor(t / 20) % 2 ? '#ff6a3a' : '#ffd23f';
+      ctx.fillText('⚔️ RAGING TROLL UNLOCKED — pick Level 1 to fight it!', W / 2, 438);
+    } else {
+      const rb = rageBtn();
+      ctx.fillStyle = rageMode ? '#5a1410' : '#241d33'; ctx.fillRect(rb.x, rb.y, rb.w, rb.h);
+      ctx.strokeStyle = rageMode ? '#ff6a3a' : '#8a4a3a'; ctx.lineWidth = 2; ctx.strokeRect(rb.x, rb.y, rb.w, rb.h);
+      ctx.fillStyle = rageMode ? '#ffd23f' : '#e8a0a8';
+      ctx.fillText(rageMode ? '⚔️ RAGING TROLL: ON — Level 1 boss is furious!' : '⚔️ Fight the Raging Troll on Level 1: OFF', rb.x + rb.w / 2, rb.y + 17);
+    }
+    ctx.textAlign = 'left';
+  }
+  ctx.font = 'bold 16px sans-serif';
+  if (!isUnlocked(selLevel)) { // picking a locked quest explains itself; flashes white if you tried to start it
+    ctx.fillStyle = titleDeny > 0 && Math.floor(t / 8) % 2 ? '#fff' : '#e5484d';
+    ctx.fillText(`🔒 Level ${selLevel + 1} is locked — beat Level ${selLevel} first!`, W / 2, H - 42);
+  } else {
+    ctx.fillStyle = Math.floor(t / 30) % 2 ? '#ffc94d' : '#fff';
+    ctx.fillText('←/→ or tap a card to choose • any other key (or tap it again) to start', W / 2, H - 42);
+  }
+  if (titleDeny > 0) titleDeny--;
   ctx.textAlign = 'left';
 }
 
@@ -152,9 +245,17 @@ function drawEnd(win) {
   }
   ctx.font = '54px serif'; ctx.fillText('👑', W / 2, 105);
   ctx.font = 'bold 32px sans-serif'; ctx.fillStyle = '#ffc94d'; ctx.fillText('YOUR CASTLE IS COMPLETE!', W / 2, 150);
+  if (justUnlocked >= 0) {
+    ctx.font = 'bold 15px sans-serif'; ctx.fillStyle = Math.floor(t / 20) % 2 ? '#7ee787' : '#ffc94d';
+    ctx.fillText(`🔓 NEW QUEST UNLOCKED — Level ${justUnlocked + 1}: ${LEVELS[justUnlocked].name}`, W / 2, 172);
+  }
   if (lastRun) {
     ctx.font = 'bold 20px sans-serif'; ctx.fillStyle = '#fff';
     ctx.fillText(`⏱ Your time: ${fmtTime(lastRun.time)}${lastRun.rank === 0 ? '  🏆 NEW BEST!' : ''}`, W / 2, 192);
+    if (lastRun.cheated) {
+      ctx.font = 'bold 13px sans-serif'; ctx.fillStyle = '#ff9a5b';
+      ctx.fillText('⚡ Power/King mode was used — practice run: no scoreboard time, no new level unlocked', W / 2, 214);
+    }
   }
   if (enteringName) {
     ctx.font = 'bold 13px sans-serif'; ctx.fillStyle = '#fff';

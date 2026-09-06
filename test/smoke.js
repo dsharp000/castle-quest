@@ -30,8 +30,8 @@ var read = function (p) { return $.NSString.stringWithContentsOfFileEncodingErro
 var base = $.NSFileManager.defaultManager.currentDirectoryPath.js;
 // JavaScriptCore drops top-level const/let bindings between eval() calls,
 // so rewrite them to var when loading (test harness only — files are unchanged).
-['js/config.js', 'levels/level1.js', 'levels/level2.js', 'levels/level3.js', 'levels/level4.js', 'js/input.js', 'js/audio.js', 'js/world.js',
- 'js/player.js', 'js/enemies.js', 'js/castle.js', 'js/villager.js', 'js/render.js', 'js/main.js']
+['js/config.js', 'levels/level1.js', 'levels/level2.js', 'levels/level3.js', 'levels/level4.js', 'levels/level5.js', 'js/input.js', 'js/audio.js', 'js/world.js',
+ 'js/player.js', 'js/enemies.js', 'js/castle.js', 'js/villager.js', 'js/render.js', 'js/cutscene.js', 'js/main.js']
   .forEach(function (f) { (1, eval)(read(base + '/' + f).replace(/\b(const|let)\s+/g, 'var ')); });
 
 // ---- helpers ----
@@ -247,6 +247,63 @@ castle.keep = 5; castle.walls = 5; castle.towers = 4; frame(1);
 check('level 4 win uses its own goal', scene === 'win');
 enteringName = false;
 
+// ---- level 5: Vengeful Volcano — the dragon only comes once the castle is
+// finished, and you TAME it with 10 raw meat instead of just killing it ----
+selLevel = 4; reset();
+check('level 5 loads with its own world', level === LEVELS[4] && WORLD_W === LEVELS[4].worldW && trees.length > 0);
+check('level 5 goblins are Super-Hard-tier (5 hp)', goblins[0].hp === 5 && goblins[0].max === 5);
+check('level 5 is tagged Super Hard', level.tag.indexOf('⭐⭐⭐') === 0);
+check('level 5 boss is the fire dragon', troll.name.indexOf('FIRE DRAGON') >= 0 && troll.shape === 'dragon');
+check('the dragon has not arrived at the start', troll.arrived === false && troll.alive === false);
+// embers rain down and burn a knight standing in the open
+goblins = []; raiders = []; trees = []; rocks = []; ores = []; golds = []; villager = null;
+embers = []; player.x = 3000; player.y = GROUND; player.inv = 0;
+var ehp0 = player.hp;
+emberTimer = 1; frame(1); // spawn a wave
+check('level 5 rains molten embers', embers.length > 0);
+// force a spawned ember straight onto the knight, then let it land
+embers.forEach(function (e) { e.x = player.x; });
+frame(200);
+check('a falling ember burns the knight', player.hp < ehp0);
+// the ember hazard is level-specific — no embers on the forest level
+selLevel = 0; reset(); emberTimer = 1; frame(3);
+check('other levels have no ember hazard', !level.embers && embers.length === 0);
+
+// the dragon only appears once the castle goal is met — and that alone won't win
+selLevel = 4; reset();
+trees = []; rocks = []; ores = []; goblins = []; raiders = []; embers = []; player.inv = 999;
+res.meat = 0; // arrive with no meat
+castle.keep = 5; castle.walls = 6; castle.towers = 5; frame(1);
+check('finishing the castle does NOT win on its own', scene === 'game');
+check('finishing the castle summons the dragon', troll.arrived === true && troll.alive === true);
+// beating the dragon SUBDUES it — it stays, and you still have not won
+player.x = troll.x - 30; player.y = GROUND; player.face = 1; player.inv = 999;
+troll.hp = 1; keys.A = true; frame(3); keys.A = false;
+check('beating the dragon subdues it (not killed, not won)', troll.subdued === true && troll.alive === true && !troll.tamed && scene === 'game');
+// taming needs a FULL pack of raw meat — 9 is not enough
+res.meat = 9; player.x = troll.x; player.y = GROUND; player.inv = 999; frame(1);
+check('cannot tame the dragon without enough meat', !troll.tamed && scene === 'game');
+// feed it the full 10 → tamed → the ride-off cutscene begins, and meat is spent
+res.meat = 10; frame(1);
+check('feeding 10 meat tames the dragon and starts the ride-off cutscene', troll.tamed === true && res.meat === 0 && scene === 'cutscene');
+var finishAt = cutFinishFrames;
+frame(30);
+check('the cutscene animates without ending immediately', scene === 'cutscene' && cs >= 30);
+// the cutscene runs to completion and hands off to the win screen
+frame(CUT_END); // more than enough frames to finish
+check('the cutscene ends on the win screen with the run recorded', scene === 'win' && lastRun && lastRun.time === finishAt);
+enteringName = false;
+// skipping: a tap / key jumps straight to the win screen mid-cutscene
+selLevel = 4; reset();
+trees = []; rocks = []; ores = []; goblins = []; raiders = []; embers = []; player.inv = 999;
+castle.keep = 5; castle.walls = 6; castle.towers = 5; frame(1);
+player.x = troll.x - 30; player.y = GROUND; player.face = 1; troll.hp = 1; keys.A = true; frame(3); keys.A = false;
+res.meat = 10; player.x = troll.x; frame(1);
+check('a fresh tame re-enters the cutscene', scene === 'cutscene');
+frame(20); endCutscene();
+check('skipping the cutscene lands on the win screen', scene === 'win' && lastRun && lastRun.time > 0);
+enteringName = false;
+
 // ---- level 3: fast sand-viper snakes with a venomous every-4th bite ----
 selLevel = 2; reset();
 var mob = goblins.find(function (g) { return g.kind === 'snake'; });
@@ -413,10 +470,164 @@ var offers = villager.trades;
 raidTimer = 1; frame(2);
 check('raid start rerolls the trades', villager.trades !== offers && villager.trades.length === 3);
 
+// ---- title-screen "clear this level's times" button ----
+selLevel = 4; loadLevel(4);
+allTimes[0] = [{ time: 500, date: 'x', name: 'Keep' }];
+allTimes[4] = [{ time: 1234, date: 'x', name: 'Tester' }];
+bestTimes = allTimes[4];
+check('a level has a recorded time to clear', !!levelBest(4));
+clearTimes(4);
+check('clearing a level wipes its best-times table', allTimes[4].length === 0 && !levelBest(4));
+check('the live table for the current level empties too', bestTimes.length === 0 && bestTimes === allTimes[4]);
+check('clearing one level leaves other levels intact', levelBest(0) && levelBest(0).time === 500);
+
+// ---- 👑 King Mode (admin): pre-built castle, one-shot power, meat-free tame, wipe-all ----
+kingMode = false; godMode = false;
+selLevel = 2; reset();
+check('without King Mode the castle starts unbuilt', castle.keep === 1 && castle.walls === 0 && castle.towers === 0);
+kingMode = true;
+selLevel = 2; reset(); // Deserted Desert — goal keep5 / walls5 / towers4
+check('King Mode pre-builds the castle to the level goal', castle.keep === level.goal.keep && castle.walls === level.goal.walls && castle.towers === level.goal.towers);
+check('King Mode powers you up (invincible)', godMode === true);
+check('sword damage reads as a one-shot while powered', swordDmg() >= 999);
+var kgob = newGob(1000); kgob.hp = kgob.max = 9; goblins = [kgob];
+player.x = 982; player.y = GROUND; player.face = 1;
+keys.A = true; frame(1); keys.A = false;
+check('King/power mode one-shots a full-hp enemy', kgob.hp <= 0);
+// King Mode finishes the volcano with no meat: castle is built, so the dragon
+// comes at once; one-shot it, then tame it with an empty pack.
+selLevel = 4; reset();
+trees = []; rocks = []; ores = []; goblins = []; raiders = []; embers = [];
+frame(1);
+check('a pre-built castle summons the volcano dragon immediately', troll.arrived === true && troll.alive === true);
+player.x = troll.x - 30; player.y = GROUND; player.face = 1;
+keys.A = true; frame(2); keys.A = false;
+check('King Mode one-shots the dragon', troll.subdued === true);
+res.meat = 0; player.x = troll.x; frame(1);
+check('King Mode tames the dragon with no meat', troll.tamed === true && scene === 'cutscene');
+endCutscene(); enteringName = false;
+// delete ALL times
+allTimes[0] = [{ time: 1, date: 'x', name: 'a' }]; allTimes[2] = [{ time: 2, date: 'x', name: 'b' }];
+clearAllTimes();
+check('King Mode wipes ALL levels\' times', allTimes.length === 0 && bestTimes.length === 0 && !levelBest(0) && !levelBest(2));
+kingMode = false; godMode = false; // leave a clean slate
+
+// ---- level progression: the quests are beaten in order (👑 King Mode skips) ----
+kingMode = false; godMode = false; cheated = false; enteringName = false;
+unlockedCount = 1; titleDeny = 0; justUnlocked = -1;
+check('only Level 1 starts unlocked', isUnlocked(0) && !isUnlocked(1) && !isUnlocked(LEVELS.length - 1));
+scene = 'title'; selLevel = 1;
+check('a locked quest refuses to start', startSelected() === false && scene === 'title' && titleDeny > 0);
+scene = 'title'; selLevel = 0;
+check('an unlocked quest starts', startSelected() === true && scene === 'game' && levelIdx === 0);
+levelIdx = 0; cheated = false; winRun(300); enteringName = false;
+check('beating a level unlocks the next one', unlockedCount === 2 && isUnlocked(1) && justUnlocked === 1);
+check('a level you already beat stays open', isUnlocked(0));
+check('winning opens exactly ONE level ahead', !isUnlocked(2));
+scene = 'title'; selLevel = 1;
+check('the newly unlocked quest can now be started', startSelected() === true && levelIdx === 1);
+levelIdx = 0; cheated = false; winRun(400); enteringName = false;
+check('replaying a beaten level unlocks nothing new', unlockedCount === 2 && justUnlocked === -1);
+levelIdx = 1; cheated = true; winRun(500); enteringName = false;
+check('a power/King-mode win does not unlock the next level', unlockedCount === 2 && justUnlocked === -1);
+cheated = false;
+kingMode = true;
+check('King Mode opens every level', isUnlocked(2) && isUnlocked(LEVELS.length - 1));
+scene = 'title'; selLevel = LEVELS.length - 1;
+check('King Mode skips straight to the last level', startSelected() === true && levelIdx === LEVELS.length - 1);
+kingMode = false; godMode = false; cheated = false;
+check('turning King Mode off locks the skipped levels again', !isUnlocked(2));
+levelIdx = LEVELS.length - 1; winRun(600); enteringName = false;
+check('winning the last level unlocks nothing beyond it', justUnlocked === -1);
+unlockedCount = 1; selLevel = 0; scene = 'title'; justUnlocked = -1; cheated = false;
+clearAllTimes();
+
 var sfxOk = true;
 try { Object.keys(sfx).forEach(function (k) { sfx[k](); }); toggleMute(); toggleMute(); musicTick(); }
 catch (e) { sfxOk = false; }
 check('audio no-ops headless', sfxOk);
+
+// ---- each level has its own music; Level 1 keeps the original ----
+check('every level has its own 32-step music track', TRACKS.length === LEVELS.length &&
+  TRACKS.every(function (x) { return x.peace.length === 32 && x.raid.length === 32 && x.drone.length === 2; }));
+check('Level 1 keeps the original music', TRACKS[0].peace === MEL_PEACE && TRACKS[0].raid === MEL_RAID && TRACKS[0].drone[0] === 38);
+check('the other levels have distinct tunes', new Set(TRACKS.map(function (x) { return x.peace.join(','); })).size === LEVELS.length);
+
+// ---- Raging Troll: defeat 10 of every enemy (bosses too) to unlock it on Level 1 ----
+kingMode = false; godMode = false; rageMode = false; kills = {};
+check('the Raging Troll starts locked', !rageUnlocked() && rageProgress() === 0);
+// mob kills tally by type
+selLevel = 2; reset(); // desert: goblins + sand-vipers
+killEnemy(goblins.find(function (g) { return !g.kind; }));
+check('killing a goblin tallies a goblin', kills.goblin === 1);
+killEnemy(goblins.find(function (g) { return g.kind === 'snake'; }));
+check('killing a sand-viper tallies a snake', kills.snake === 1);
+killEnemy({ raider: true, x: 100, y: GROUND });
+check('killing a raider tallies a raider', kills.raider === 1);
+// beating a boss tallies that level's boss slot
+selLevel = 0; reset();
+trees = []; rocks = []; ores = []; goblins = []; raiders = [];
+troll.hp = 1; player.x = troll.x - 30; player.y = GROUND; player.face = 1; player.inv = 999;
+keys.A = true; frame(4); keys.A = false;
+check('beating the Level 1 troll tallies boss0', kills.boss0 === 1 && !troll.alive);
+// force the whole tally to the goal → the unlock flips on
+RAGE_TYPES.forEach(function (k) { kills[k] = RAGE_GOAL; });
+check('defeating 10 of every enemy unlocks the Raging Troll', rageUnlocked() && rageProgress() === RAGE_TYPES.length);
+// the toggle buffs ONLY the Level 1 boss
+rageMode = true; selLevel = 0; reset();
+check('Raging mode makes the Level 1 boss far tougher', troll.raging === true && troll.max > 40 && troll.dmg >= 4);
+selLevel = 2; reset();
+check('Raging mode only applies to Level 1', !troll.raging);
+// a locked tally does not buff, even with the toggle on
+rageMode = true; kills = {}; selLevel = 0; reset();
+check('a locked tally never spawns the Raging Troll', !troll.raging);
+rageMode = false; kills = {};
+
+// ---- power/King mode runs are practice: they never reach the scoreboard ----
+kingMode = false; godMode = false; cheated = false; rageMode = false;
+selLevel = 3; reset(); godMode = true; update();
+check('using power mode taints the run', cheated === true);
+godMode = false; enteringName = false;
+var b3 = (allTimes[3] || []).length;
+winRun(1234);
+check('a cheated win is a practice run — flagged, no name entry', scene === 'win' && lastRun.cheated === true && lastRun.rank === -1 && enteringName === false);
+check('a cheated win adds nothing to the best-times table', (allTimes[3] || []).length === b3);
+reset(); cheated = false;
+winRun(777);
+check('a clean run still posts to the scoreboard', !lastRun.cheated && lastRun.rank >= 0 && bestTimes.some(function (e) { return e.time === 777; }));
+enteringName = false;
+cheated = true; reset();
+check('starting a run clears the cheated flag', cheated === false);
+godMode = false; kingMode = false; cheated = false; enteringName = false;
+
+// ---- Cavernous Cave slime: a baby every 6 raids that eats to grow ----
+kingMode = false; godMode = false; cheated = false; rageMode = false;
+check('a new slime starts as a baby (size 1)', newSlime(100).size === 1);
+selLevel = 3; reset(); // Cavernous Cave
+check('the cave starts with no slimes', slimes.length === 0);
+for (var rw = 0; rw < 6; rw++) { raidTimer = 1; frame(2); }
+check('a baby slime oozes in every 6 raids', slimes.length >= 1);
+var sl = slimes[0];
+sl.size = 1; sl.max = 3 + 2; sl.hp = sl.max; // normalize (it may have nibbled during those frames)
+var spd0 = slimeSpd(sl), dmg0 = slimeDmg(sl);
+// it eats an enemy it touches → grows
+goblins = [newGob(sl.x + 4)]; raiders = []; trees = []; rocks = []; ores = []; golds = [];
+player.x = sl.x - 4000; player.y = GROUND; // keep the knight out of reach for this check
+updateSlimes();
+check('a slime eats an enemy it touches and grows', sl.size > 1 && goblins.every(function (g) { return g.hp <= 0; }));
+check('a bigger slime is slower but hits harder', slimeSpd(sl) < spd0 && slimeDmg(sl) > dmg0);
+// it bites the knight on contact for size-scaled damage
+goblins = []; player.x = sl.x; player.y = GROUND; player.inv = 0; sl.atkCd = 0;
+var shp0 = player.hp;
+updateSlimes();
+check('a slime bites the knight on contact', player.hp < shp0);
+// the sword can kill it, and other levels never spawn slimes
+sl.hp = 1; player.x = sl.x - 20; player.face = 1; player.inv = 999; keys.A = true; frame(1); keys.A = false;
+check('the knight can cut a slime down', slimes.every(function (x) { return x.hp > 0 ? x !== sl : true; }) && sl.hp <= 0);
+selLevel = 0; reset();
+for (var rw2 = 0; rw2 < 6; rw2++) { raidTimer = 1; frame(2); }
+check('slimes appear only in the Cavernous Cave', slimes.length === 0);
+godMode = false; kingMode = false; cheated = false;
 
 if (fails) throw new Error(fails + ' smoke test failure(s)');
 'SMOKE TEST PASSED';

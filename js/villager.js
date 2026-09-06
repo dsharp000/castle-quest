@@ -14,7 +14,7 @@ const newVillager = () => ({
   trades: rollTrades(),
 });
 
-// ---- trading (gold 🪙 is the only coin the villager takes) ----
+// ---- trading (gold 💰 is the only coin the villager takes) ----
 function rollTrades() {
   const pool = [
     () => { const g = ri(1, 2); return { label: `+${g * 4} 🪵 wood`, gold: g, act: () => res.wood += g * 4 }; },
@@ -43,8 +43,8 @@ function updateTradeMenu() {
     if (!inTradeRange()) { say('👁 Too far to trade — stand by the trader!', 90); sfx.deny(); }
     else {
       const tr = trades[tradeSel];
-      if (res.gold >= tr.gold) { res.gold -= tr.gold; tr.act(); say(`🤝 Traded ${tr.gold} 🪙 for ${tr.label}`, 100); sfx.build(); }
-      else { say(`🧑‍🌾 ${villager.name} wants ${tr.gold} 🪙 for that!`, 80); sfx.deny(); }
+      if (res.gold >= tr.gold) { res.gold -= tr.gold; tr.act(); say(`🤝 Traded ${tr.gold} 💰 for ${tr.label}`, 100); sfx.build(); }
+      else { say(`🧑‍🌾 ${villager.name} wants ${tr.gold} 💰 for that!`, 80); sfx.deny(); }
     }
     keys.A = false; keys.E = false; keys.T = false;
   }
@@ -137,15 +137,15 @@ function drawTradeMenu() {
   ctx.fillRect(W / 2 - 210, 100, 420, 46 * trades.length + 80); ctx.strokeRect(W / 2 - 210, 100, 420, 46 * trades.length + 80);
   const close = inTradeRange();
   ctx.font = 'bold 18px sans-serif'; ctx.fillStyle = close ? '#ffc94d' : '#8fb3e0'; ctx.textAlign = 'center';
-  ctx.fillText(close ? `🤝 ${villager.name}'s trades — you have ${res.gold} 🪙`
-    : `👁 ${villager.name}'s trades from afar — you have ${res.gold} 🪙`, W / 2, 130);
+  ctx.fillText(close ? `🤝 ${villager.name}'s trades — you have ${res.gold} 💰`
+    : `👁 ${villager.name}'s trades from afar — you have ${res.gold} 💰`, W / 2, 130);
   trades.forEach((tr, i) => {
     const y = 150 + i * 46, sel = i === tradeSel, afford = res.gold >= tr.gold;
     ctx.fillStyle = sel ? '#7a5230' : '#3a2f4a'; ctx.fillRect(W / 2 - 190, y - 18, 380, 40);
     ctx.fillStyle = afford ? '#fff' : '#999'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'left';
     ctx.fillText(tr.label, W / 2 - 178, y + 4);
     ctx.textAlign = 'right'; ctx.font = '12px sans-serif'; ctx.fillStyle = afford ? '#ffe9a8' : '#e5484d';
-    ctx.fillText(`${tr.gold} 🪙`, W / 2 + 178, y + 6);
+    ctx.fillText(`${tr.gold} 💰`, W / 2 + 178, y + 6);
   });
   ctx.textAlign = 'center'; ctx.font = '12px sans-serif'; ctx.fillStyle = '#c9b68a';
   ctx.fillText(close ? '↑/← → select • J/E buy • L peeks builds • tap outside to close'

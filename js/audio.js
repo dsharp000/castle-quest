@@ -114,31 +114,65 @@ const sfx = {
   lose:    () => { thump(sfxBus, 0.4); [220, 196, 175, 147].forEach((f, i) => horn(sfxBus, f, 0.5, 0.15, at(i * 0.45))); },
 };
 
-// ---- background music: lute melody in D dorian over a bagpipe-style drone
-// (root + fifth each bar). Raids switch to a faster, darker tune with hand
-// drums. 32 eighth-note steps per loop; 0 = rest, else MIDI note.
+// ---- background music: a plucked/belled melody over a bagpipe-style drone
+// (root + fifth each bar). Each LEVEL gets its own tune, key, tempo and timbre;
+// raids swap to that level's darker, faster variant with hand drums. 32
+// eighth-note steps per loop; 0 = rest, else MIDI note.
 const midi = m => 440 * Math.pow(2, (m - 69) / 12);
+
+// Level 1 — the ORIGINAL: lute in D dorian over a D2+A2 drone (kept unchanged).
 const MEL_PEACE = [62, 0, 65, 67, 69, 0, 72, 69, 67, 0, 65, 62, 60, 62, 65, 0, 62, 0, 65, 67, 69, 0, 72, 74, 72, 0, 69, 67, 65, 67, 62, 0];
 const MEL_RAID  = [62, 0, 62, 63, 65, 0, 63, 62, 60, 0, 60, 62, 63, 0, 62, 60, 58, 0, 58, 60, 62, 0, 63, 65, 63, 62, 60, 58, 57, 0, 58, 0];
+
+// Per-level tracks. `lead`: pluck (lute) / bell (chimes). `pulse`: a soft heartbeat
+// drum under the peaceful tune. Level 0 = the original, byte-for-byte.
+const TRACKS = [
+  // 1 — Forest (original): D dorian lute
+  { peace: MEL_PEACE, raid: MEL_RAID, drone: [38, 45], stepPeace: 0.22, stepRaid: 0.16, lead: 'pluck' },
+  // 2 — Frost Keep: high, airy A-minor bell chimes, slow and cold
+  { peace: [69, 0, 72, 0, 76, 0, 74, 0, 72, 0, 69, 0, 71, 0, 72, 0, 74, 0, 76, 0, 79, 0, 76, 0, 74, 0, 72, 71, 69, 0, 0, 0],
+    raid:  [69, 0, 69, 71, 72, 0, 71, 69, 68, 0, 68, 69, 71, 0, 69, 68, 76, 0, 76, 74, 72, 0, 71, 72, 74, 72, 71, 69, 68, 0, 69, 0],
+    drone: [45, 52], stepPeace: 0.24, stepRaid: 0.16, lead: 'bell' },
+  // 3 — Deserted Desert: exotic E Phrygian-dominant lute
+  { peace: [64, 0, 65, 68, 0, 65, 64, 0, 69, 0, 68, 65, 64, 0, 65, 0, 64, 0, 68, 69, 71, 0, 69, 68, 65, 0, 64, 62, 64, 0, 0, 0],
+    raid:  [64, 64, 65, 0, 64, 63, 64, 0, 68, 68, 69, 0, 68, 65, 64, 0, 64, 64, 65, 68, 69, 68, 65, 64, 63, 64, 65, 64, 63, 0, 64, 0],
+    drone: [40, 47], stepPeace: 0.20, stepRaid: 0.15, lead: 'pluck' },
+  // 4 — Cavernous Cave: deep, slow, sparse C-minor bass lute
+  { peace: [48, 0, 0, 0, 55, 0, 0, 51, 0, 0, 53, 0, 51, 0, 48, 0, 0, 0, 50, 0, 53, 0, 55, 0, 56, 0, 55, 0, 53, 51, 48, 0],
+    raid:  [48, 0, 48, 51, 0, 48, 47, 0, 46, 0, 46, 48, 0, 46, 44, 0, 43, 0, 43, 46, 48, 0, 46, 44, 43, 0, 44, 46, 48, 0, 47, 0],
+    drone: [36, 43], stepPeace: 0.26, stepRaid: 0.18, lead: 'pluck' },
+  // 5 — Vengeful Volcano: fast, driving D harmonic-minor with a heartbeat drum
+  { peace: [62, 0, 65, 0, 69, 0, 65, 62, 61, 62, 65, 69, 74, 0, 73, 0, 69, 0, 65, 0, 62, 0, 61, 62, 65, 69, 73, 74, 73, 69, 65, 0],
+    raid:  [62, 62, 65, 69, 62, 62, 65, 69, 70, 70, 73, 74, 70, 69, 65, 62, 61, 61, 65, 69, 73, 74, 73, 69, 65, 62, 61, 62, 65, 0, 69, 0],
+    drone: [38, 45], stepPeace: 0.18, stepRaid: 0.14, lead: 'pluck', pulse: true },
+];
+const curTrack = () => TRACKS[levelIdx] || TRACKS[0];
 var nextStep = 0, stepI = 0;
 
+function leadNote(lead, freq, t0) {
+  if (lead === 'bell') bell(musicBus, freq, 0.1, t0);
+  else pluck(musicBus, freq, 0.16, t0);
+}
 function musicTick() {
   if (!AC) return;
+  const tr = curTrack();
   while (nextStep < AC.currentTime + 0.2) {
     const raid = raiders && raiders.length > 0;
     playStep(stepI % 32, nextStep, raid);
-    nextStep += raid ? 0.16 : 0.22;
+    nextStep += raid ? tr.stepRaid : tr.stepPeace;
     stepI++;
   }
 }
 function playStep(s, t0, raid) {
   if (muted || scene !== 'game' || paused) return;
-  const mel = raid ? MEL_RAID : MEL_PEACE, stepDur = raid ? 0.16 : 0.22;
-  if (mel[s]) pluck(musicBus, midi(mel[s]), 0.16, t0);
-  if (s % 8 === 0) { // drone: D2 + A2, re-bowed each bar
-    horn(musicBus, midi(38), stepDur * 8, 0.045, t0);
-    horn(musicBus, midi(45), stepDur * 8, 0.03, t0);
+  const tr = curTrack();
+  const mel = raid ? tr.raid : tr.peace, stepDur = raid ? tr.stepRaid : tr.stepPeace;
+  if (mel[s]) leadNote(tr.lead, midi(mel[s]), t0);
+  if (s % 8 === 0) { // drone: root + fifth, re-bowed each bar
+    horn(musicBus, midi(tr.drone[0]), stepDur * 8, 0.045, t0);
+    horn(musicBus, midi(tr.drone[1]), stepDur * 8, 0.03, t0);
   }
   if (raid && s % 4 === 0) thump(musicBus, 0.25, t0);
   if (raid && s % 4 === 2) _n(musicBus, 0.04, 0.06, 5000, t0);
+  if (!raid && tr.pulse && s % 8 === 4) thump(musicBus, 0.13, t0); // volcano heartbeat
 }

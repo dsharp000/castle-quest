@@ -4,7 +4,24 @@ const newGob = x => { const hp = level.goblinHp || 3; return { x, y: GROUND, vx:
 // A fast desert sand-viper. Roams like a goblin but sprints when it spots you,
 // and every 4th bite is venomous — 2 hearts instead of 1. `atkN` counts bites.
 const newSnake = x => { const hp = level.snakeHp || 3; return { x, y: GROUND, vx: 0, hp, max: hp, face: -1, home: x, state: 'patrol', dir: Math.random() < .5 ? 1 : -1, hurt: 0, atkCd: 0, kind: 'snake', atkN: 0 }; };
-const newTroll = spec => ({ x: worldX(spec.x), y: GROUND, hp: spec.hp, max: spec.hp, dmg: spec.dmg || 2, c1: spec.c1, c2: spec.c2, shape: spec.shape, name: spec.name, face: -1, atkT: 0, alive: true, hurt: 0 });
+// `afterGoal` bosses stay away (alive:false, arrived:false) until the castle is
+// finished — main.js summons them. `subdued` = beaten but not yet killed/removed
+// (used by tame levels, where you tame it instead of finishing it off).
+const newTroll = spec => ({ x: worldX(spec.x), y: GROUND, hp: spec.hp, max: spec.hp, dmg: spec.dmg || 2, c1: spec.c1, c2: spec.c2, shape: spec.shape, name: spec.name, face: -1, atkT: 0, alive: !spec.afterGoal, arrived: !spec.afterGoal, subdued: false, tamed: false, hurt: 0 });
+
+// Cave slime (Level 4): oozes in as a baby every few raids and EATS everything
+// it touches — enemies, resource nodes, and bites of the knight — growing one
+// `size` each meal. Bigger = more hp, more damage… but slower. Derived stats:
+const slimeR   = s => 12 + s.size * 5;                       // radius (visual + reach)
+const slimeSpd = s => Math.max(0.35, 1.5 - s.size * 0.16);   // crawl speed — slows as it grows
+const slimeDmg = s => Math.min(5, s.size);                   // bite damage — baby 1 → up to 5
+const slimeMax = s => 3 + s.size * 2;                        // hp cap by size
+const newSlime = x => { const o = { x, y: GROUND, face: 1, kind: 'slime', size: 1, hurt: 0, atkCd: 0 }; o.max = slimeMax(o); o.hp = o.max; return o; };
+function slimeGrow(s) {
+  if (s.size < ((level.slime && level.slime.maxSize) || 8)) s.size++;
+  s.max = slimeMax(s); s.hp = s.max; // a meal heals it to its new (larger) cap
+  puff(s.x, s.y - slimeR(s), '#8ee06a', 8);
+}
 
 function updateGoblins() {
   const p = player;
@@ -41,12 +58,18 @@ function updateGoblins() {
 }
 
 function updateTroll() {
-  if (!troll.alive) return;
+  if (!troll.alive || troll.subdued) return; // not arrived, gone, or beaten & waiting to be tamed
   if (troll.hurt > 0) troll.hurt--;
   const dx = player.x - troll.x;
-  if (Math.abs(dx) < 200) {
-    troll.x += Math.sign(dx) * 0.7; troll.face = Math.sign(dx);
-    if (Math.abs(dx) < 40 && troll.atkT <= 0 && player.inv <= 0) { hurtPlayer(troll.dmg); troll.atkT = 70; }
+  // the Raging Troll hunts from farther, moves faster, and hits faster the more
+  // hurt it is (rage climbs from 0 → 1 as its hp drops).
+  const rage = troll.raging ? 1 - troll.hp / troll.max : 0;
+  const range = troll.raging ? 340 : 200;
+  const spd = troll.raging ? 1.5 + rage * 0.9 : 0.7;
+  const atkGap = troll.raging ? Math.round(60 - rage * 30) : 70;
+  if (Math.abs(dx) < range) {
+    troll.x += Math.sign(dx) * spd; troll.face = Math.sign(dx);
+    if (Math.abs(dx) < 44 && troll.atkT <= 0 && player.inv <= 0) { hurtPlayer(troll.dmg); troll.atkT = atkGap; }
   }
   if (troll.atkT > 0) troll.atkT--;
 }
@@ -54,7 +77,14 @@ function updateTroll() {
 function updateRaiders() {
   const p = player;
   if (!menuOpen) raidTimer--;
-  if (raidTimer <= 0) { wave++; spawnRaid(); raidTimer = 60 * (level.raids.firstDelaySec + wave * level.raids.extraDelayPerWaveSec); }
+  if (raidTimer <= 0) {
+    wave++; spawnRaid(); raidTimer = 60 * (level.raids.firstDelaySec + wave * level.raids.extraDelayPerWaveSec);
+    // a baby slime oozes in from a cave wall every few raids (Level 4 only)
+    if (level.slime && wave % (level.slime.everyRaids || 6) === 0) {
+      slimes.push(newSlime(Math.random() < .5 ? 150 : WORLD_W - 150));
+      say('🟢 A baby slime oozes out of the cave wall…', 200);
+    }
+  }
   for (const r of raiders) {
     if (r.hp <= 0) continue;
     if (r.hurt > 0) r.hurt--;
@@ -79,6 +109,46 @@ function updateRaiders() {
   raiders = raiders.filter(r => r.hp > 0);
 }
 
+function updateSlimes() {
+  const p = player;
+  for (const s of slimes) {
+    if (s.hp <= 0) continue;
+    if (s.hurt > 0) s.hurt--;
+    if (s.atkCd > 0) s.atkCd--;
+    const r = slimeR(s);
+    // crawl toward the nearest meal: the knight or any goblin/raider
+    let tx = p.x, td = Math.abs(p.x - s.x);
+    for (const e of [...goblins, ...raiders]) if (e.hp > 0) { const d = Math.abs(e.x - s.x); if (d < td) { td = d; tx = e.x; } }
+    const dir = Math.sign(tx - s.x) || 1;
+    s.x += dir * slimeSpd(s); s.face = dir;
+    // eat any enemy it overlaps → grow
+    for (const e of [...goblins, ...raiders]) if (e.hp > 0 && Math.abs(e.x - s.x) < r) { e.hp = 0; slimeGrow(s); pop(s.x, s.y - r - 8, '😋 nom!'); }
+    // eat resource nodes it overlaps → grow (they respawn as usual)
+    for (const arr of [trees, rocks, ores, golds]) for (const o of arr) if (o.hp > 0 && Math.abs(o.x - s.x) < r) { o.hp = 0; o.respawn = 60 * 25; slimeGrow(s); }
+    // bite the knight on contact → damage scaled by size, and grow
+    if (Math.abs(p.x - s.x) < r + 10 && Math.abs(p.y - s.y) < 60 && s.atkCd <= 0 && p.inv <= 0) { hurtPlayer(slimeDmg(s)); s.atkCd = 45; slimeGrow(s); }
+  }
+  slimes = slimes.filter(s => s.hp > 0);
+}
+
+function drawSlimes() {
+  for (const s of slimes) {
+    if (s.hp <= 0) continue;
+    const r = slimeR(s), wob = Math.sin(t / 6 + s.x) * (r * 0.08);
+    ctx.save(); ctx.translate(s.x, GROUND);
+    ctx.globalAlpha = 0.85; ctx.fillStyle = s.hurt > 0 ? '#c8f0a0' : '#6ab04c'; // gelatinous dome
+    ctx.beginPath(); ctx.ellipse(0, -r * 0.6 + wob, r, r * 0.8 - wob, 0, 0, 2 * Math.PI); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#4e8a3a'; ctx.beginPath(); ctx.ellipse(0, -2, r * 0.95, r * 0.28, 0, 0, 2 * Math.PI); ctx.fill(); // base
+    ctx.fillStyle = '#bdf09a99'; ctx.beginPath(); ctx.ellipse(-r * 0.3, -r * 0.85, r * 0.28, r * 0.2, 0, 0, 2 * Math.PI); ctx.fill(); // sheen
+    const ex = s.face * r * 0.25; // eyes look the way it's heading
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex - 5, -r * 0.7, 3.2, 0, 2 * Math.PI); ctx.arc(ex + 5, -r * 0.7, 3.2, 0, 2 * Math.PI); ctx.fill();
+    ctx.fillStyle = '#1c2a10'; ctx.beginPath(); ctx.arc(ex - 5 + s.face, -r * 0.7, 1.6, 0, 2 * Math.PI); ctx.arc(ex + 5 + s.face, -r * 0.7, 1.6, 0, 2 * Math.PI); ctx.fill();
+    ctx.restore();
+    if (s.hp < s.max) bar(s.x, GROUND - r * 1.4 - 6, s.hp / s.max);
+  }
+}
+
 function spawnRaid() {
   const n = Math.min(level.raids.baseCount + wave, level.raids.maxCount);
   say(`⚠️ RAID! ${n} goblins are attacking the castle!`, 220);
@@ -95,6 +165,8 @@ function spawnRaid() {
 
 function killEnemy(g) {
   sfx.kill();
+  recordKill(g.kind === 'snake' ? 'snake' : g.raider ? 'raider' : 'goblin'); // Raging Troll tally
+
   const iron = ri(1, 2), wood = ri(0, 2);
   res.iron += iron; if (wood) res.wood += wood;
   // sand-vipers also drop raw meat — a keeper resource for later (kept for the
@@ -146,10 +218,92 @@ function drawSnakeMob(g) {
   if (g.hp < g.max) bar(g.x, g.y - 32, g.hp / g.max);
 }
 
+// The fire-dragon body, drawn in a local frame (origin = feet, facing +x). Shared
+// by the boss (drawTroll) and the ride-off cutscene so the two look identical.
+// opt: { bob, wf (wing-flap offset), flame }. Returns local-space anchor points
+// (saddle where a rider sits, and the mouth) for the cutscene to place the knight.
+function drawDragonBody(c1, c2, opt) {
+  opt = opt || {};
+  const bob = opt.bob != null ? opt.bob : Math.sin(t / 7) * 3;
+  const wf = opt.wf != null ? opt.wf : Math.sin(t / 8) * 8;
+  const flame = opt.flame != null ? opt.flame : true;
+  const dark = '#4d1210';
+  // ---- far wing (behind everything): finger-bones + scalloped membrane ----
+  const bones = [[-72, -104 - wf], [-58, -120 - wf], [-38, -122 - wf], [-18, -110 - wf * .6]];
+  ctx.fillStyle = c2; ctx.globalAlpha = 0.6;
+  ctx.beginPath(); ctx.moveTo(-12, -46 + bob); ctx.lineTo(-6, -94 + bob - wf * .4);
+  bones.forEach(b => ctx.lineTo(b[0], b[1] + bob));
+  ctx.quadraticCurveTo(-34, -78 + bob, -22, -66 + bob);
+  ctx.quadraticCurveTo(-34, -60 + bob, -18, -50 + bob); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = dark; ctx.lineWidth = 2.5; ctx.globalAlpha = 0.75; // finger struts
+  bones.forEach(b => { ctx.beginPath(); ctx.moveTo(-8, -90 + bob - wf * .4); ctx.lineTo(b[0], b[1] + bob); ctx.stroke(); });
+  ctx.globalAlpha = 1;
+  // ---- spaded tail curling out behind, tapering to an arrow tip ----
+  for (let i = 7; i >= 1; i--) {
+    const r = 6 + i * 2, sy = -14 + bob - Math.sin(t / 10 + i) * 2;
+    ctx.fillStyle = c1; ctx.beginPath(); ctx.ellipse(-38 - i * 8, sy, r, r * 0.82, 0, 0, 2 * Math.PI); ctx.fill();
+  }
+  const tx0 = -38 - 8 * 8, ty0 = -14 + bob;
+  ctx.fillStyle = c2; ctx.beginPath();
+  ctx.moveTo(tx0 + 8, ty0 - 3); ctx.lineTo(tx0 - 12, ty0 - 12); ctx.lineTo(tx0 - 4, ty0); ctx.lineTo(tx0 - 12, ty0 + 12); ctx.closePath(); ctx.fill();
+  // ---- body + belly plates ----
+  ctx.fillStyle = c1; ctx.beginPath(); ctx.ellipse(-6, -30 + bob, 36, 24, 0, 0, 2 * Math.PI); ctx.fill();
+  ctx.fillStyle = c2; ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.ellipse(-2, -20 + bob, 26, 15, 0, 0, 2 * Math.PI); ctx.fill(); ctx.globalAlpha = 1;
+  ctx.strokeStyle = dark; ctx.lineWidth = 1.5;
+  for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.moveTo(-2 + i * 10, -9 + bob); ctx.lineTo(-2 + i * 10, -2 + bob); ctx.stroke(); }
+  // ---- clawed legs ----
+  ctx.fillStyle = dark; ctx.beginPath(); ctx.ellipse(-22, -18 + bob, 12, 15, 0, 0, 2 * Math.PI); ctx.fill(); // haunch
+  ctx.fillStyle = c1; ctx.fillRect(-30, -10 + bob, 13, 12);
+  ctx.fillStyle = c1; ctx.fillRect(6, -14 + bob, 9, 16); // front leg reaching down
+  ctx.fillStyle = '#f4d9a0'; // claws on both feet
+  for (const cx2 of [-31, -26, -21, 3, 8, 13]) { ctx.beginPath(); ctx.moveTo(cx2, 2 + bob); ctx.lineTo(cx2 + 2, 8 + bob); ctx.lineTo(cx2 + 4, 2 + bob); ctx.fill(); }
+  // ---- S-curved neck of shrinking scales up to the head ----
+  const neck = [];
+  for (let i = 0; i <= 6; i++) {
+    const nx = 8 + i * 5 + Math.sin(i * 0.5) * 3, ny = -46 - i * 12 + bob;
+    neck.push([nx, ny]);
+    ctx.fillStyle = c1; ctx.beginPath(); ctx.ellipse(nx, ny, 14 - i * 1.3, 13 - i * 1.2, 0, 0, 2 * Math.PI); ctx.fill();
+  }
+  ctx.fillStyle = c2; // dorsal spines up the neck + a few along the back
+  for (let i = 1; i < neck.length; i++) { const [nx, ny] = neck[i]; ctx.beginPath(); ctx.moveTo(nx - 10, ny - 1); ctx.lineTo(nx - 20, ny - 9); ctx.lineTo(nx - 7, ny + 4); ctx.fill(); }
+  for (const bx of [-24, -14, -4]) { ctx.beginPath(); ctx.moveTo(bx, -50 + bob); ctx.lineTo(bx - 4, -64 + bob); ctx.lineTo(bx + 6, -50 + bob); ctx.fill(); }
+  // ---- head: skull, snout, open fanged jaw, swept horns ----
+  const hx = neck[6][0] + 8, hy = neck[6][1] - 4;
+  ctx.fillStyle = c1; ctx.beginPath(); ctx.ellipse(hx, hy, 16, 12, 0, 0, 2 * Math.PI); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(hx + 4, hy - 7); ctx.lineTo(hx + 34, hy - 4); ctx.lineTo(hx + 30, hy + 2); ctx.lineTo(hx + 6, hy + 3); ctx.closePath(); ctx.fill(); // upper snout
+  ctx.fillStyle = dark; ctx.beginPath(); ctx.moveTo(hx + 6, hy + 4); ctx.lineTo(hx + 30, hy + 6); ctx.lineTo(hx + 8, hy + 11); ctx.closePath(); ctx.fill(); // lower jaw
+  ctx.fillStyle = '#fff4d6'; // teeth
+  for (const tx of [hx + 14, hx + 20, hx + 26]) { ctx.beginPath(); ctx.moveTo(tx, hy + 2); ctx.lineTo(tx + 2, hy + 6); ctx.lineTo(tx + 4, hy + 2); ctx.fill(); }
+  ctx.fillStyle = c2; // two swept-back horns
+  ctx.beginPath(); ctx.moveTo(hx - 6, hy - 8); ctx.lineTo(hx - 22, hy - 22); ctx.lineTo(hx - 4, hy - 12); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(hx - 1, hy - 9); ctx.lineTo(hx - 13, hy - 26); ctx.lineTo(hx + 3, hy - 11); ctx.fill();
+  ctx.fillStyle = dark; ctx.fillRect(hx - 2, hy - 6, 10, 3); // brow ridge
+  ctx.fillStyle = '#ffe08a'; ctx.beginPath(); ctx.arc(hx + 5, hy - 1, 3.6, 0, 2 * Math.PI); ctx.fill(); // eye
+  ctx.fillStyle = '#1c0a08'; ctx.beginPath(); ctx.ellipse(hx + 6, hy - 1, 1.4, 2.4, 0, 0, 2 * Math.PI); ctx.fill();
+  ctx.fillStyle = dark; ctx.beginPath(); ctx.arc(hx + 30, hy - 2, 1.6, 0, 2 * Math.PI); ctx.fill(); // nostril
+  // ---- breathed flame: layered yellow → orange → white-hot core ----
+  if (flame && Math.floor(t / 8) % 2) {
+    const mx = hx + 32, my = hy + 3;
+    ctx.fillStyle = '#ffd23a'; ctx.globalAlpha = 0.9;
+    ctx.beginPath(); ctx.moveTo(mx, my - 6); ctx.lineTo(mx + 34, my - 10); ctx.lineTo(mx + 26, my); ctx.lineTo(mx + 42, my + 5); ctx.lineTo(mx + 24, my + 6); ctx.lineTo(mx + 32, my + 13); ctx.lineTo(mx, my + 8); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#ff6a1e';
+    ctx.beginPath(); ctx.moveTo(mx, my - 2); ctx.lineTo(mx + 22, my - 3); ctx.lineTo(mx + 16, my + 2); ctx.lineTo(mx + 26, my + 6); ctx.lineTo(mx, my + 5); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#fff0b0';
+    ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx + 11, my - 1); ctx.lineTo(mx + 5, my + 3); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+  return { sadX: -6, sadY: -52 + bob, mouthX: hx + 30, mouthY: hy + 2 };
+}
+
 function drawTroll() {
   const tr = troll; ctx.save(); ctx.translate(tr.x, tr.y); ctx.scale(tr.face, 1);
   if (tr.hurt > 0) ctx.globalAlpha = 0.6;
   const bob = Math.sin(t / 7) * 3;
+  if (tr.raging) { // pulsing fury aura, angrier as it's worn down
+    const rr = 50 + Math.sin(t / 5) * 6 + (1 - tr.hp / tr.max) * 12;
+    ctx.fillStyle = Math.floor(t / 6) % 2 ? '#ff3a1e44' : '#ff6a2e33';
+    ctx.beginPath(); ctx.arc(0, -42, rr, 0, 2 * Math.PI); ctx.fill();
+  }
   if (tr.shape === 'snake') {
     // tapering segments slither behind a raised neck; head faces the player
     for (let i = 11; i >= 0; i--) {
@@ -192,6 +346,8 @@ function drawTroll() {
     // eye
     ctx.fillStyle = '#ffe08a'; ctx.beginPath(); ctx.arc(40, -31 + bob, 4.5, 0, 2 * Math.PI); ctx.fill();
     ctx.fillStyle = '#1c1208'; ctx.beginPath(); ctx.arc(41, -31 + bob, 2, 0, 2 * Math.PI); ctx.fill();
+  } else if (tr.shape === 'dragon') {
+    drawDragonBody(tr.c1 || '#8a1f18', tr.c2 || '#f0761e', { bob }); // shared art (see drawDragonBody)
   } else {
     ctx.fillStyle = tr.c1 || '#5a6b4a'; ctx.fillRect(-24, -70 + bob, 48, 58);
     ctx.fillStyle = tr.c2 || '#6b7c5a'; ctx.fillRect(-18, -95 + bob, 36, 28);
@@ -200,8 +356,9 @@ function drawTroll() {
     ctx.fillStyle = '#7a5230'; ctx.fillRect(22, -80 + bob, 10, 50);
   }
   ctx.globalAlpha = 1; ctx.restore();
-  bar(tr.x, tr.y - 108, tr.hp / tr.max);
-  ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = '#ffc94d'; ctx.textAlign = 'center'; ctx.fillText(tr.name, tr.x, tr.y - 114); ctx.textAlign = 'left';
+  const labelY = tr.shape === 'dragon' ? 162 : 108; // the reared dragon is taller — lift its bar/name clear of the horns
+  bar(tr.x, tr.y - labelY, tr.hp / tr.max);
+  ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = '#ffc94d'; ctx.textAlign = 'center'; ctx.fillText(tr.name, tr.x, tr.y - labelY - 6); ctx.textAlign = 'left';
 }
 
 function drawEnemies() {
